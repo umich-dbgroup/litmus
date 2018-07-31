@@ -1,0 +1,9 @@
+mo-collections==2.16.18199
+mo-dots==2.7.18148
+mo-future==2.4.18148
+mo-kwargs==2.16.18199
+mo-logs==2.16.18199
+mo-math==2.16.18199
+moz-sql-parser==2.15.18155
+mysql-connector==2.1.6
+pyparsing==2.2.0
