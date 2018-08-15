@@ -187,7 +187,9 @@ def main():
 
     k = 10
 
-    filter = (None, 'Steven Spielberg', None)
+    # filter = ('Morgan Freeman', None, None, None)
+    # filter = (None, 'Steven Spielberg', None, None)
+    filter = ('Tom Cruise', None, None, None)
     # greedy_dist(conn, Q, k, filter)
     round_robin_dist(conn, Q, k, filter)
     conn.close()
