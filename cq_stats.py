@@ -2,12 +2,29 @@ from __future__ import division, print_function
 
 import argparse
 from collections import OrderedDict
+from email.mime.text import MIMEText
 import json
+import smtplib
 import time
 
 from moz_sql_parser import parse
 import mysql.connector
 from progress.bar import ChargingBar
+
+def send_email(to_email, subject, message):
+    from_email = 'cannoliemailer@gmail.com'
+    msg = MIMEText(message)
+    msg['Subject'] = subject
+    msg['From'] = from_email
+    msg['To'] = to_email
+
+    s = smtplib.SMTP('smtp.gmail.com', 587)
+    s.ehlo()
+    s.starttls()
+    s.ehlo()
+    s.login(from_email, 'cannoli123')
+    s.sendmail(from_email, [to_email], msg.as_string())
+    s.quit()
 
 def main():
     parser = argparse.ArgumentParser()
@@ -90,6 +107,8 @@ def main():
             for tuple, count in sorted_tuples.items()[0:k]:
                 print(count, end=', ')
             print('\n')
+
+    send_email('chrisjbaik@gmail.com', 'Done {}'.format(args.db), 'Done')
 
 if __name__ == '__main__':
     main()
