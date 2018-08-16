@@ -75,6 +75,17 @@ def dist(cqs, t, cqids):
 
     return ((Q_len - C_t) * p_t) + (C_t * (1 - p_t));
 
+def calc_dists(cqs, tuples):
+    print("Calculating dist values...")
+    start = time.time()
+    tuple_dists = {}
+    for t, cqids in tuples.items():
+        tuple_dists[t] = dist(cqs, t, cqids)
+
+    sorted_tuple_dists = OrderedDict(sorted(tuple_dists.items(), key=lambda t: t[1], reverse=True))
+    print("Done calculating dists [{}s]".format(time.time() - start))
+    return sorted_tuple_dists
+
 def run_cqs(db, cqs, msg_append=''):
     valid_cqs = []
     timed_out = 0
@@ -103,24 +114,17 @@ def run_cqs(db, cqs, msg_append=''):
 
     return tuples, valid_cqs, timed_out
 
+def print_top_dists(sorted_dists, tuples, k):
+    print("Top {} tuples:".format(k))
+    for t, dist_val in sorted_dists.items()[0:k]:
+        print("{}, Dist: {}, # CQs: {}".format(t, dist_val, len(tuples[t])))
+
 def exhaustive(db, cqs):
     tuples, valid_cqs, timed_out = run_cqs(db, cqs)
 
     print_stats(len(cqs), timed_out, len(valid_cqs))
-
-    print("Calculating dist values...")
-    start = time.time()
-    tuple_dists = {}
-    for t, cqids in tuples.items():
-        tuple_dists[t] = dist(cqs, t, cqids)
-
-    sorted_tuple_dists = OrderedDict(sorted(tuple_dists.items(), key=lambda t: t[1], reverse=True))
-    print("Done calculating dists [{}s]".format(time.time() - start))
-
-    k = 5
-    print("Top tuples:")
-    for t, dist_val in sorted_tuple_dists.items()[0:k]:
-        print("{}, Dist: {}, # CQs: {}".format(t, dist_val, len(tuples[t])))
+    sorted_dists = calc_dists(cqs, tuples)
+    print_top_dists(sorted_dists, tuples, 5)
 
 def by_type(db, cqs):
     print("Parsing CQs by type...")
@@ -150,16 +154,9 @@ def by_type(db, cqs):
     sorted_type_parts = OrderedDict(sorted(type_parts.items(), key=lambda t: len(t[1]), reverse=True))
     type, type_cqs = sorted_type_parts.items()[0]
 
-    tuple_dists = {}
     tuples, valid_cqs, timed_out = run_cqs(db, type_cqs, msg_append=' ' + str(type))
-    for t, cqids in tuples.items():
-        tuple_dists[t] = dist(cqs, t, cqids)
-    sorted_tuple_dists = OrderedDict(sorted(tuple_dists.items(), key=lambda t: t[1], reverse=True))
-
-    k = 5
-    print("Top tuples:")
-    for t, dist_val in sorted_tuple_dists.items()[0:k]:
-        print("{}, Dist: {}, # CQs: {}".format(t, dist_val, len(tuples[t])))
+    sorted_dists = calc_dists(cqs, tuples)
+    print_top_dists(sorted_dists, tuples, 5)
 
 def execute_mode(mode, db, qid, cqs):
     print("QUERY {}: {}".format(qid, mode))
