@@ -34,6 +34,10 @@ def execute_query(conn, cq):
 
         cq_tuples = set()
         for result in cursor:
+            # disallow nulls
+            if None in result:
+                continue
+
             cq_tuples.add(result)
         cursor.close()
         return cq_tuples
@@ -146,7 +150,7 @@ def exhaustive(conn, qid, cqs):
 
     sorted_tuple_dists = OrderedDict(sorted(tuple_dists.items(), key=lambda t: t[1], reverse=True))
     print("Done calculating dists [{}s]".format(time.time() - start))
-    k = 10
+    k = 5
     print("Top tuples:")
     for t, dist_val in sorted_tuple_dists.items()[0:k]:
         print("{}, Dist: {}, # CQs: {}".format(t, dist_val, len(tuples[t])))
