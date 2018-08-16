@@ -7,9 +7,10 @@ import json
 import smtplib
 import time
 
-# from moz_sql_parser import parse
-import mysql.connector
+from moz_sql_parser import parse
 from progress.bar import ChargingBar
+
+from database import Database
 
 def send_email(to_email, subject, message):
     from_email = 'cannoliemailer@gmail.com'
@@ -26,8 +27,8 @@ def send_email(to_email, subject, message):
     s.sendmail(from_email, [to_email], msg.as_string())
     s.quit()
 
-def execute_query(conn, cq):
-    cursor = conn.cursor()
+def execute_query(db, cq):
+    cursor = db.cursor()
 
     try:
         cursor.execute(cq)
@@ -46,60 +47,25 @@ def execute_query(conn, cq):
         if str(exc).startswith('3024'):
             raise Exception('Timeout: Query timed out.')
 
-def stats(conn, qid, cqs):
-    print("QUERY {}".format(qid))
-    start = time.time()
+def print_stats(cq_count, timeout_count, valid_count):
+    print('Total CQs: {}'.format(cq_count))
+    print('Timed Out CQs: {}'.format(timeout_count))
+    print('Valid CQs: {}'.format(valid_count))
 
-    tuples = {}
-    valid_cqs = 0
-    timed_out = 0
+def stats(db, cqs):
+    tuples, valid_cqs, timed_out = run_cqs(db, cqs)
 
-    bar = ChargingBar('Running CQs', max=len(cqs), suffix='%(index)d/%(max)d (%(percent)d%%)')
+    sorted_tuples = OrderedDict(sorted(tuples.items(), key=lambda t: len(t[1]), reverse=True))
 
-    for cq in cqs:
-        # print(cq)
-        # parsed = parse(cq)
-        #
-        # projs = []
-        # for sel in parsed['select']:
-        #     if 'distinct' in sel['value']:
-        #         projs.append(sel['value']['distinct'])
-        #     else:
-        #         projs.append(sel['value'])
+    print_stats(len(cqs), timed_out, len(valid_cqs))
 
-        try:
-            cq_tuples = execute_query(conn, cq)
-
-            if len(cq_tuples) > 0:
-                valid_cqs += 1
-
-            for t in cq_tuples:
-                if t in tuples:
-                    tuples[t] += 1
-                else:
-                    tuples[t] = 1
-        except Exception, exc:
-            if str(exc).startswith('Timeout'):
-                timed_out += 1
-
-        bar.next()
-
-    bar.finish()
-
-    print("Done executing CQs [{}s]".format(time.time() - start))
-
-    sorted_tuples = OrderedDict(sorted(tuples.items(), key=lambda t: t[1], reverse=True))
-
-    print('Total CQs: {}'.format(len(cqs)))
-    print('Timed Out CQs: {}'.format(timed_out))
-    print('Valid CQs: {}'.format(valid_cqs))
     if valid_cqs > 0:
-        print('Avg. tuples per CQ: {}'.format(len(tuples)/valid_cqs))
+        print('Avg. tuples per CQ: {}'.format(len(tuples)/len(valid_cqs)))
         k = 5
         print('Tuples with most CQ overlap: ', end='')
         for tuple, count in sorted_tuples.items()[0:k]:
-            print(count, end=', ')
-        print('\n')
+            print(count, end='; ')
+        print()
 
 def dist(cqs, t, cqids):
     Q_len = len(cqs)
@@ -109,23 +75,20 @@ def dist(cqs, t, cqids):
 
     return ((Q_len - C_t) * p_t) + (C_t * (1 - p_t));
 
-def exhaustive(conn, qid, cqs):
-    print("QUERY {}: Exhaustive".format(qid))
-    start = time.time()
-
+def run_cqs(db, cqs, msg_append=''):
     valid_cqs = []
     timed_out = 0
     tuples = {}
 
-    bar = ChargingBar('Running CQs', max=len(cqs), suffix='%(index)d/%(max)d (%(percent)d%%)')
+    bar = ChargingBar('Running CQs{}'.format(msg_append), max=len(cqs), suffix='%(index)d/%(max)d (%(percent)d%%)')
 
-    for cq in cqs:
+    start = time.time()
+    for cqid, cq in cqs.items():
         try:
-            cq_tuples = execute_query(conn, cq)
+            cq_tuples = execute_query(db, cq)
 
             if len(cq_tuples) > 0:
-                cqid = len(valid_cqs)
-                valid_cqs.append(cq)
+                valid_cqs.append(cqid)
 
                 for t in cq_tuples:
                     if t not in tuples:
@@ -138,59 +101,109 @@ def exhaustive(conn, qid, cqs):
     bar.finish()
     print("Done executing CQs [{}s]".format(time.time() - start))
 
-    print('Total CQs: {}'.format(len(cqs)))
-    print('Timed Out CQs: {}'.format(timed_out))
-    print('Valid CQs: {}'.format(len(valid_cqs)))
+    return tuples, valid_cqs, timed_out
+
+def exhaustive(db, cqs):
+    tuples, valid_cqs, timed_out = run_cqs(db, cqs)
+
+    print_stats(len(cqs), timed_out, len(valid_cqs))
 
     print("Calculating dist values...")
     start = time.time()
     tuple_dists = {}
     for t, cqids in tuples.items():
-        tuple_dists[t] = dist(valid_cqs, t, cqids)
+        tuple_dists[t] = dist(cqs, t, cqids)
 
     sorted_tuple_dists = OrderedDict(sorted(tuple_dists.items(), key=lambda t: t[1], reverse=True))
     print("Done calculating dists [{}s]".format(time.time() - start))
+
     k = 5
     print("Top tuples:")
     for t, dist_val in sorted_tuple_dists.items()[0:k]:
         print("{}, Dist: {}, # CQs: {}".format(t, dist_val, len(tuples[t])))
-    print()
 
-def execute_mode(mode, conn, qid, cqs):
+def by_type(db, cqs):
+    print("Parsing CQs by type...")
+    start = time.time()
+
+    type_parts = {}
+    for cqid, cq in cqs.items():
+        parsed = parse(cq)
+
+        projs = []
+        for sel in parsed['select']:
+            if 'distinct' in sel['value']:
+                projs.append(sel['value']['distinct'])
+            else:
+                projs.append(sel['value'])
+
+        proj_types = ()
+        for proj in projs:
+            proj_types = proj_types + (db.get_attr_type(proj),)
+
+        if proj_types not in type_parts:
+            type_parts[proj_types] = {}
+        type_parts[proj_types][cqid] = cq
+    print("Done parsing [{}s]".format(time.time() - start))
+
+    # Assume the largest type is most likely to produce your result.
+    sorted_type_parts = OrderedDict(sorted(type_parts.items(), key=lambda t: len(t[1]), reverse=True))
+    type, type_cqs = sorted_type_parts.items()[0]
+
+    tuple_dists = {}
+    tuples, valid_cqs, timed_out = run_cqs(db, type_cqs, msg_append=' ' + str(type))
+    for t, cqids in tuples.items():
+        tuple_dists[t] = dist(cqs, t, cqids)
+    sorted_tuple_dists = OrderedDict(sorted(tuple_dists.items(), key=lambda t: t[1], reverse=True))
+
+    k = 5
+    print("Top tuples:")
+    for t, dist_val in sorted_tuple_dists.items()[0:k]:
+        print("{}, Dist: {}, # CQs: {}".format(t, dist_val, len(tuples[t])))
+
+def execute_mode(mode, db, qid, cqs):
+    print("QUERY {}: {}".format(qid, mode))
+    start = time.time()
     if mode == 'stats':
-        stats(conn, qid, cqs)
+        stats(db, cqs)
     elif mode == 'exhaustive':
-        exhaustive(conn, qid, cqs)
+        exhaustive(db, cqs)
+    elif mode == 'by_type':
+        by_type(db, cqs)
+    print("DONE [{}s]".format(time.time() - start))
+    print()
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('db')
-    parser.add_argument('mode', choices=['stats', 'exhaustive'])
+    parser.add_argument('mode', choices=['stats', 'exhaustive', 'by_type'])
     parser.add_argument('--qid', type=int)
     parser.add_argument('--timeout', type=int, default=15000)
     parser.add_argument('--email')
     args = parser.parse_args()
 
-    conn = mysql.connector.connect(user='root', password='', host='127.0.0.1', database=args.db)
+    db = Database('root', '', '127.0.0.1', 'imdb')
+    db.set_timeout(args.timeout)
 
-    # set query timeout
-    cursor = conn.cursor()
-    cursor.execute('SET SESSION MAX_EXECUTION_TIME={}'.format(args.timeout))
-    cursor.close()
-
+    # load dataset
     with open(args.db + '.json') as f:
         data = json.load(f)
 
-    data = {int(k):v for k,v in data.items()}
-    sorted_data = OrderedDict(sorted(data.items(), key=lambda t: t[0]))
+    tasks = {}
+    for qid, cqs in data.items():
+        cq_dict = {}
+        for cqid, cq in enumerate(cqs):
+            cq_dict[cqid] = cq
+        tasks[int(qid)] = cq_dict
 
     if args.qid is not None:
         # if executing single query
-        execute_mode(args.mode, conn, args.qid, data[args.qid])
+        execute_mode(args.mode, db, args.qid, tasks[args.qid])
     else:
         # if executing all queries
-        for qid, cqs in sorted_data.items():
-            execute_mode(args.mode, conn, qid, cqs)
+        sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
+        for qid, cqs in sorted_tasks.items():
+            execute_mode(args.mode, db, qid, cqs)
 
     if args.email is not None:
         send_email(args.email, 'Done {}'.format(args.db), 'Done')
