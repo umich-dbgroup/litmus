@@ -4,8 +4,20 @@ import mysql.connector
 
 class Attribute:
   def __init__(self, name, type):
+    self.rel = None
     self.name = name
-    self.type = type      # text, number
+    self.type = type      # text, num
+
+    if type == 'num':
+      self.min = None
+      self.max = None
+
+  def set_rel(self, rel):
+    self.rel = rel
+
+  def set_range(self, min, max):
+    self.min = min
+    self.max = max
 
 class Relation:
   def __init__(self, name, attrs):
@@ -52,6 +64,11 @@ class Database:
         attrs[attr_name] = Attribute(attr_name, attr_type)
       cursor.close()
 
+      for attr_name, attr in attrs.items():
+        if attr.type == 'num':
+          min, max = self.get_attr_range(rel_name, attr)
+          attr.set_range(min, max)
+
       self.relations[rel_name] = Relation(rel_name, attrs)
 
   def cursor(self):
@@ -63,12 +80,19 @@ class Database:
     cursor.close()
 
   # given a fragment from a SQL statement (e.g. 'actor_0.name')
-  # find the type of the attr
-  def get_attr_type(self, frag):
+  # get the attribute
+  def get_attr(self, frag):
     rel_alias, attr_name = frag.split('.')
     m = re.match('([A-Za-z_]+)_[0-9]+', rel_alias)
     if m:
       rel_name = m.group(1)
-      return self.relations[rel_name].attrs[attr_name].type
+      return self.relations[rel_name].attrs[attr_name]
     else:
       raise Exception('Attribute not found for [{}].'.format(frag))
+
+  def get_attr_range(self, rel_name, attr):
+    cursor = self.cursor()
+    cursor.execute('SELECT MIN({}), MAX({}) FROM {}'.format(attr.name, attr.name, rel_name))
+    row = cursor.fetchone()
+    cursor.close()
+    return row[0], row[1]
