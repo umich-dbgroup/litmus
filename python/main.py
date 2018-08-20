@@ -4,13 +4,14 @@ import argparse
 from collections import OrderedDict
 from email.mime.text import MIMEText
 import json
+import os
 import smtplib
 import time
 
-from moz_sql_parser import parse
 from progress.bar import ChargingBar
 
 from database import Database
+from parser import SQLParser
 
 def send_email(to_email, subject, message):
     from_email = 'cannoliemailer@gmail.com'
@@ -126,35 +127,8 @@ def exhaustive(db, cqs):
     sorted_dists = calc_dists(cqs, tuples)
     print_top_dists(sorted_dists, tuples, 5)
 
-def parse_projections(cq):
-    parsed = parse(cq)
-
-    projs = []
-    for sel in parsed['select']:
-        if 'distinct' in sel['value']:
-            projs.append(sel['value']['distinct'])
-        else:
-            projs.append(sel['value'])
-
-    return projs
-
-def parse_projections_many(cqs):
-    print("Parsing queries...")
-    start = time.time()
-
-    bar = ChargingBar('Parsing CQs', max=len(cqs), suffix='%(index)d/%(max)d (%(percent)d%%)')
-
-    cq_projs = {}
-    for cqid, cq in cqs.items():
-        projs = parse_projections(cq)
-        cq_projs[cqid] = (cq, projs)
-        bar.next()
-    bar.finish()
-    print("Done parsing [{}s]".format(time.time() - start))
-    return cq_projs
-
-def by_type(db, cqs):
-    cqs_projs = parse_projections_many(cqs)
+def by_type(db, parser, cqs):
+    cqs_projs = parser.parse_many(cqs)
 
     print("Partitioning CQs by type...")
     start = time.time()
@@ -213,7 +187,7 @@ def find_overlap_intervals(transitions):
 
     return sorted_partitions
 
-def by_type_range(db, cqs):
+def by_type_range(db, parser, cqs):
     # assume all projections have the same length (for now)
     type_parts = {}
 
@@ -225,7 +199,7 @@ def by_type_range(db, cqs):
     # for each colnum, stores attrs -> [(cqid, frag)]
     attrs_to_cqs = {}
 
-    cqs_projs = parse_projections_many(cqs)
+    cqs_projs = parser.parse_many(cqs)
 
     print("Partitioning CQs by type and numeric range...")
     start = time.time()
@@ -296,7 +270,7 @@ def by_type_range(db, cqs):
     sorted_dists = calc_dists(cqs, tuples)
     print_top_dists(sorted_dists, tuples, 5)
 
-def execute_mode(mode, db, qid, cqs):
+def execute_mode(mode, db, parser, qid, cqs):
     print("QUERY {}: {}".format(qid, mode))
     start = time.time()
     if mode == 'stats':
@@ -304,20 +278,22 @@ def execute_mode(mode, db, qid, cqs):
     elif mode == 'exhaustive':
         exhaustive(db, cqs)
     elif mode == 'by_type':
-        by_type(db, cqs)
+        by_type(db, parser, cqs)
     elif mode == 'by_type_range':
-        by_type_range(db, cqs)
+        by_type_range(db, parser, cqs)
     print("DONE [{}s]".format(time.time() - start))
     print()
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('db')
-    parser.add_argument('mode', choices=['stats', 'exhaustive', 'by_type', 'by_type_range'])
-    parser.add_argument('--qid', type=int)
-    parser.add_argument('--timeout', type=int, default=15000)
-    parser.add_argument('--email')
-    args = parser.parse_args()
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument('db')
+    argparser.add_argument('mode', choices=['stats', 'exhaustive', 'by_type', 'by_type_range'])
+    argparser.add_argument('--qid', type=int)
+    argparser.add_argument('--timeout', type=int, default=15000)
+    argparser.add_argument('--email')
+    args = argparser.parse_args()
+
+    parser = SQLParser()
 
     print("Loading database...")
     start = time.time()
@@ -326,7 +302,7 @@ def main():
     print("Done loading database [{}s]".format(time.time()-start))
 
     # load dataset
-    with open(args.db + '.json') as f:
+    with open(os.path.join('../data/', args.db + '.json')) as f:
         data = json.load(f)
 
     tasks = {}
@@ -338,12 +314,12 @@ def main():
 
     if args.qid is not None:
         # if executing single query
-        execute_mode(args.mode, db, args.qid, tasks[args.qid])
+        execute_mode(args.mode, db, parser, args.qid, tasks[args.qid])
     else:
         # if executing all queries
         sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
         for qid, cqs in sorted_tasks.items():
-            execute_mode(args.mode, db, qid, cqs)
+            execute_mode(args.mode, db, parser, qid, cqs)
 
     if args.email is not None:
         send_email(args.email, 'Done {}'.format(args.db), 'Done')
