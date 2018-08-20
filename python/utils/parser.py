@@ -1,3 +1,5 @@
+__all__ = ['SQLParser']
+
 import os
 import pickle
 import time
@@ -51,5 +53,6 @@ class SQLParser:
             query_projs[query_id] = (query, projs)
             bar.next()
         bar.finish()
-        print("Done parsing [{}s] (From cache: {}/{})".format(time.time() - start, from_cache, len(queries)))
-        return query_projs
+        parse_time = time.time() - start
+        print("Done parsing [{}s] (From cache: {}/{})".format(parse_time, from_cache, len(queries)))
+        return query_projs, parse_time
