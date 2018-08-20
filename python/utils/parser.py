@@ -18,8 +18,8 @@ class SQLParser:
         else:
             self.cache = {}
 
-    def update_cache(self, query, projs):
-        self.cache[query] = projs
+    def update_cache(self, query, parsed):
+        self.cache[query] = parsed
         pickle.dump(self.cache, open(self.cache_path, 'wb'))
 
     def parse_one(self, query):
@@ -35,8 +35,12 @@ class SQLParser:
             else:
                 projs.append(sel['value'])
 
-        self.update_cache(query, projs)
-        return projs, False
+        preds = []
+        for op, vals in parsed['where'].items():
+            preds.append((op, vals))
+
+        self.update_cache(query, (projs, preds))
+        return (projs, preds), False
 
     def parse_many(self, queries):
         print("Parsing queries...")
@@ -44,15 +48,15 @@ class SQLParser:
 
         bar = ChargingBar('Parsing queries', max=len(queries), suffix='%(index)d/%(max)d (%(percent)d%%)')
 
-        query_projs = {}
+        query_parsed = {}
         from_cache = 0
         for query_id, query in queries.items():
-            projs, cached = self.parse_one(query)
+            parsed, cached = self.parse_one(query)
             if cached:
                 from_cache += 1
-            query_projs[query_id] = (query, projs)
+            query_parsed[query_id] = (query, parsed)
             bar.next()
         bar.finish()
         parse_time = time.time() - start
         print("Done parsing [{}s] (From cache: {}/{})".format(parse_time, from_cache, len(queries)))
-        return query_projs, parse_time
+        return query_parsed, parse_time

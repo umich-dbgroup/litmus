@@ -89,14 +89,15 @@ class Base:
 
 class ByType(Base):
     def execute(self, cqs):
-        cqs_projs, parse_time = self.parser.parse_many(cqs)
+        cqs_parsed, parse_time = self.parser.parse_many(cqs)
 
         print("Partitioning CQs by type...")
         start = time.time()
 
         type_parts = {}
-        for cqid, cq_proj in cqs_projs.items():
-            cq, projs = cq_proj
+        for cqid, cq_proj in cqs_parsed.items():
+            cq, parsed = cq_proj
+            projs, preds = parsed
 
             proj_types = ()
             for proj in projs:
@@ -134,12 +135,13 @@ class ByTypeRange(Base):
         # for each colnum, stores attrs -> [(cqid, frag)]
         attrs_to_cqs = {}
 
-        cqs_projs, parse_time = self.parser.parse_many(cqs)
+        cqs_parsed, parse_time = self.parser.parse_many(cqs)
 
         print("Partitioning CQs by type and numeric range...")
         start = time.time()
-        for cqid, cq_proj in cqs_projs.items():
-            cq, projs = cq_proj
+        for cqid, cq_proj in cqs_parsed.items():
+            cq, parsed = cq_proj
+            projs, preds = parsed
 
             proj_types = ()
             for colnum, proj in enumerate(projs):
@@ -179,7 +181,7 @@ class ByTypeRange(Base):
         type, type_cqs = sorted_type_parts.items()[0]
 
         # Execute one case: best partition for each col. TODO: generalize?
-        candidate_cqs = type_cqs
+        narrowed_cqs = type_cqs
         after_partition_cqs = {}
         for colnum, coltype in enumerate(type):
             if coltype == 'num':
@@ -190,18 +192,18 @@ class ByTypeRange(Base):
                 for attr in best_attrs:
                     cq_infos = attrs_to_cqs[colnum][attr]
                     for cqid, proj in cq_infos:
-                        if cqid in candidate_cqs:
-                            cq = candidate_cqs[cqid]
+                        if cqid in narrowed_cqs:
+                            cq = narrowed_cqs[cqid]
                             cq += ' AND {} >= {} AND {} <= {}'.format(proj, best_interval[0], proj, best_interval[1])
 
                             after_partition_cqs[cqid] = cq
 
-                candidate_cqs = after_partition_cqs
+                narrowed_cqs = after_partition_cqs
 
         partition_time = time.time() - start
         print("Done partitioning [{}s]".format(partition_time))
 
-        tuples, valid_cqs, timed_out, query_time = self.run_cqs(candidate_cqs, msg_append=' ' + str(type))
+        tuples, valid_cqs, timed_out, query_time = self.run_cqs(narrowed_cqs, msg_append=' ' + str(type))
         sorted_dists, dist_time = self.calc_dists(cqs, tuples)
         self.print_top_dists(sorted_dists, tuples, 5)
 
