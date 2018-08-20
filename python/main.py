@@ -285,9 +285,8 @@ def by_type_range(db, cqs):
                 for cqid, proj in cq_infos:
                     if cqid in candidate_cqs:
                         cq = candidate_cqs[cqid]
-                        # TODO: need to transform cq here into range query
                         cq += ' AND {} >= {} AND {} <= {}'.format(proj, best_interval[0], proj, best_interval[1])
-                        print(cq)
+                        # print(cq)
 
                         after_partition_cqs[cqid] = cq
 
