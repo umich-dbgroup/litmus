@@ -5,7 +5,7 @@ from collections import OrderedDict
 import json
 import os
 
-from algorithm.algorithms import Base, ByType, ByTypeRange, Exhaustive
+from algorithm.algorithms import Base, Partition, Overlap, Exhaustive
 from utils.parser import SQLParser
 from utils.database import Database
 
@@ -18,10 +18,10 @@ def execute_mode(mode, db, parser, qid, cqs):
         algorithm = Base(db)
     elif mode == 'exhaustive':
         algorithm = Exhaustive(db)
-    elif mode == 'by_type':
-        algorithm = ByType(db, parser)
-    elif mode == 'by_type_range':
-        algorithm = ByTypeRange(db, parser)
+    elif mode == 'partition':
+        algorithm = Partition(db, parser)
+    elif mode == 'overlap':
+        algorithm = Overlap(db, parser)
 
     pt, qt, ct = algorithm.execute(cqs)
 
@@ -44,7 +44,7 @@ def load_tasks(data_dir, db_name):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['stats', 'exhaustive', 'by_type', 'by_type_range'])
+    argparser.add_argument('mode', choices=['stats', 'exhaustive', 'partition', 'overlap'])
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--data_dir', default='../data')
     argparser.add_argument('--timeout', type=int, default=15000)

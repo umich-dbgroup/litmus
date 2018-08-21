@@ -10,7 +10,7 @@ sys.path.append('..')
 from utils.parser import Query
 from utils.interval import ColumnIntervals
 
-__all__ = ['Base', 'ByType', 'ByTypeRange', 'Exhaustive']
+__all__ = ['Base', 'Partition', 'Overlap', 'Exhaustive']
 
 class Base:
     def __init__(self, db, parser = None):
@@ -97,7 +97,7 @@ class Base:
         for t, dist_val in sorted_dists.items()[0:k]:
             print("{}, Dist: {}, # CQs: {}".format(t, dist_val, len(tuples[t])))
 
-class ByType(Base):
+class Partition(Base):
     def execute(self, cqs):
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
 
@@ -129,7 +129,7 @@ class ByType(Base):
 
         return parse_time, query_time, comp_time
 
-class ByTypeRange(Base):
+class Overlap(Base):
     def execute(self, cqs):
         type_parts = {}       # each type-based partition
         intervals = {}        # ColumnIntervals for each colnum
