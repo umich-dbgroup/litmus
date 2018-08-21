@@ -18,15 +18,15 @@ class SQLParser:
         else:
             self.cache = {}
 
-    def update_cache(self, query, parsed):
-        self.cache[query] = parsed
+    def update_cache(self, query):
+        self.cache[query.query_str] = query
         pickle.dump(self.cache, open(self.cache_path, 'wb'))
 
-    def parse_one(self, query):
-        if query in self.cache:
-            return self.cache[query], True
+    def parse_one(self, query_str):
+        if query_str in self.cache:
+            return self.cache[query_str], True
 
-        parsed = parse(query)
+        parsed = parse(query_str)
 
         projs = []
         for sel in parsed['select']:
@@ -39,24 +39,52 @@ class SQLParser:
         for op, vals in parsed['where'].items():
             preds.append((op, vals))
 
-        self.update_cache(query, (projs, preds))
-        return (projs, preds), False
+        query = Query(query_str, projs, preds)
 
-    def parse_many(self, queries):
+        self.update_cache(query)
+        return query, False
+
+    def parse_many(self, query_strs):
         print("Parsing queries...")
         start = time.time()
 
-        bar = ChargingBar('Parsing queries', max=len(queries), suffix='%(index)d/%(max)d (%(percent)d%%)')
+        bar = ChargingBar('Parsing queries', max=len(query_strs), suffix='%(index)d/%(max)d (%(percent)d%%)')
 
-        query_parsed = {}
+        queries = {}
         from_cache = 0
-        for query_id, query in queries.items():
-            parsed, cached = self.parse_one(query)
+        for query_id, query_str in query_strs.items():
+            query, cached = self.parse_one(query_str)
             if cached:
                 from_cache += 1
-            query_parsed[query_id] = (query, parsed)
+            queries[query_id] = query
             bar.next()
         bar.finish()
         parse_time = time.time() - start
-        print("Done parsing [{}s] (From cache: {}/{})".format(parse_time, from_cache, len(queries)))
-        return query_parsed, parse_time
+        print("Done parsing [{}s] (From cache: {}/{})".format(parse_time, from_cache, len(query_strs)))
+        return queries, parse_time
+
+class Query:
+    def __init__(self, query_str, projs, preds):
+        self.query_str = query_str
+        self.projs = projs
+        self.preds = preds
+
+    @staticmethod
+    def limit_by_interval(db, query, proj, intervals):
+        limited_str = query.query_str
+
+        attr = db.get_attr(proj)
+
+        # if any equality predicates in query, skip
+        for pred in query.preds:
+            for val in pred[1]:
+                if pred[0] == 'eq' and db.get_attr(val) == attr:
+                    print('Skipping {}'.format(query.query_str))
+                    return query
+
+        # TODO: if there are range preds in query disjoint with intervals, skip
+
+        for interval in intervals:
+            limited_str += ' AND {} >= {} AND {} <= {}'.format(proj, interval.min, proj, interval.max)
+
+        return Query(limited_str, query.projs, query.preds)

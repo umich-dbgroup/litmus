@@ -89,6 +89,9 @@ class Database:
     # given a fragment from a SQL statement (e.g. 'actor_0.name')
     # get the attribute
     def get_attr(self, frag):
+        if '.' not in frag:
+            return None
+        
         rel_alias, attr_name = frag.split('.')
         m = re.match('([A-Za-z_]+)_[0-9]+', rel_alias)
         if m:

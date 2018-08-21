@@ -1,9 +1,14 @@
 from __future__ import division, print_function
 
+import sys
 import time
 
 from collections import OrderedDict
 from progress.bar import ChargingBar
+
+sys.path.append('..')
+from utils.parser import Query
+from utils.interval import ColumnIntervals
 
 __all__ = ['Base', 'ByType', 'ByTypeRange', 'Exhaustive']
 
@@ -38,7 +43,12 @@ class Base:
         start = time.time()
         for cqid, cq in cqs.items():
             try:
-                cq_tuples = self.db.execute(cq)
+                # unparsed vs. parsed
+                query_str = cq
+                if isinstance(cq, Query):
+                    query_str = cq.query_str
+
+                cq_tuples = self.db.execute(query_str)
 
                 if len(cq_tuples) > 0:
                     valid_cqs.append(cqid)
@@ -95,12 +105,9 @@ class ByType(Base):
         start = time.time()
 
         type_parts = {}
-        for cqid, cq_proj in cqs_parsed.items():
-            cq, parsed = cq_proj
-            projs, preds = parsed
-
+        for cqid, cq in cqs_parsed.items():
             proj_types = ()
-            for proj in projs:
+            for proj in cq.projs:
                 proj_types = proj_types + (self.db.get_attr(proj).type,)
 
             if proj_types not in type_parts:
@@ -124,30 +131,23 @@ class ByType(Base):
 
 class ByTypeRange(Base):
     def execute(self, cqs):
-        # assume all projections have the same length (for now)
-        type_parts = {}
-
-        attrs_added = set()
-
-        # stores "transitions" to be able to find overlapping intervals later
-        numeric_transitions = {}
-
-        # for each colnum, stores attrs -> [(cqid, frag)]
-        attrs_to_cqs = {}
+        type_parts = {}       # each type-based partition
+        intervals = {}        # ColumnIntervals for each colnum
+        attrs_added = {}      # attributes already added for each colnum
+        attrs_to_cqs = {}     # stores attrs -> [(cqid, frag)] for each colnum
 
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
 
-        print("Partitioning CQs by type and numeric range...")
+        print("Partitioning CQs by type...")
         start = time.time()
-        for cqid, cq_proj in cqs_parsed.items():
-            cq, parsed = cq_proj
-            projs, preds = parsed
-
+        for cqid, cq in cqs_parsed.items():
             proj_types = ()
-            for colnum, proj in enumerate(projs):
+            for colnum, proj in enumerate(cq.projs):
                 attr = self.db.get_attr(proj)
                 proj_types = proj_types + (attr.type,)
 
+                if colnum not in attrs_added:
+                    attrs_added[colnum] = set()
                 if colnum not in attrs_to_cqs:
                     attrs_to_cqs[colnum] = {}
                 if attr not in attrs_to_cqs[colnum]:
@@ -155,95 +155,72 @@ class ByTypeRange(Base):
                 attrs_to_cqs[colnum][attr].append((cqid, proj))
 
                 if attr.type == 'num':
-                    if attr in attrs_added:
+                    if attr in attrs_added[colnum]:
                         continue
-                    if colnum not in numeric_transitions:
-                        numeric_transitions[colnum] = []
 
-                    # each transition is (val, 1/-1 for enter/exit, attr)
-                    numeric_transitions[colnum].append((attr.min,1,attr))
-                    numeric_transitions[colnum].append((attr.max,-1,attr))
-                    attrs_added.add(attr)
+                    if colnum not in intervals:
+                        intervals[colnum] = ColumnIntervals(colnum)
+
+                    intervals[colnum].add_attr(attr)
+                    attrs_added[colnum].add(attr)
 
             if proj_types not in type_parts:
                 type_parts[proj_types] = {}
             type_parts[proj_types][cqid] = cq
 
-        partition_counts = []
-        numeric_intervals = {}
-        for colnum, transitions in numeric_transitions.items():
-            print('COLUMN {}'.format(colnum))
-            numeric_intervals[colnum] = self.find_overlap_intervals(transitions)
-            partition_counts.append(len(numeric_intervals[colnum]))
+        for colnum, ci in intervals.items():
+            ci.update()
 
         # Assume the largest type is most likely to produce your result.
         sorted_type_parts = OrderedDict(sorted(type_parts.items(), key=lambda t: len(t[1]), reverse=True))
         type, type_cqs = sorted_type_parts.items()[0]
 
-        # Execute one case: best partition for each col. TODO: generalize?
-        narrowed_cqs = type_cqs
-        after_partition_cqs = {}
-        for colnum, coltype in enumerate(type):
-            if coltype == 'num':
-                # get best interval
-                best_interval, best_attrs = numeric_intervals[colnum][0]
-
-                # get cqs / transform
-                for attr in best_attrs:
-                    cq_infos = attrs_to_cqs[colnum][attr]
-                    for cqid, proj in cq_infos:
-                        if cqid in narrowed_cqs:
-                            cq = narrowed_cqs[cqid]
-                            cq += ' AND {} >= {} AND {} <= {}'.format(proj, best_interval[0], proj, best_interval[1])
-
-                            after_partition_cqs[cqid] = cq
-
-                narrowed_cqs = after_partition_cqs
-
         partition_time = time.time() - start
         print("Done partitioning [{}s]".format(partition_time))
 
-        tuples, valid_cqs, timed_out, query_time = self.run_cqs(narrowed_cqs, msg_append=' ' + str(type))
-        sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-        self.print_top_dists(sorted_dists, tuples, 5)
+        total_interval_time = 0
+        total_query_time = 0
+        total_dist_time = 0
 
-        comp_time = partition_time + dist_time
+        max_intrvls = ColumnIntervals.max_interval_count(intervals.values())
+        for n in range(0, max_intrvls):
+            print('Rewriting queries for top-{} intervals...'.format(n+1))
+            start = time.time()
+            narrowed_cqs = dict(type_cqs)
+            after_partition_cqs = {}
+            for colnum, coltype in enumerate(type):
+                if coltype == 'num':
+                    top_n = intervals[colnum].top_n(n)
+
+                    for attr in ColumnIntervals.get_all_attrs(top_n):
+                        cq_infos = attrs_to_cqs[colnum][attr]
+                        for cqid, proj in cq_infos:
+                            if cqid in narrowed_cqs:
+                                orig = narrowed_cqs[cqid]
+                                new_query = Query.limit_by_interval(self.db, orig, proj, top_n)
+
+                                after_partition_cqs[cqid] = new_query
+
+                    narrowed_cqs = after_partition_cqs
+            interval_time = time.time() - start
+            print('Done rewriting queries [{}s]'.format(interval_time))
+
+            total_interval_time += interval_time
+
+            tuples, valid_cqs, timed_out, query_time = self.run_cqs(narrowed_cqs, msg_append=' ' + str(type))
+            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
+            self.print_top_dists(sorted_dists, tuples, 5)
+            print()
+
+            total_query_time += query_time
+            total_dist_time += dist_time
+
+            if tuples:
+                break
+
+        comp_time = partition_time + total_interval_time + total_dist_time
 
         return parse_time, query_time, comp_time
-
-
-    def find_overlap_intervals(self, transitions):
-        # https://stackoverflow.com/questions/18373509/efficiently-finding-overlapping-intervals-from-a-list-of-intervals
-        sorted_transitions = sorted(transitions, key=lambda x: (x[0], -x[1]))
-
-        # contains ((min, max), [attrs])
-        partitions = []
-
-        cur_attrs = []
-        cur_min = sorted_transitions[0][0]
-        last_pos = sorted_transitions[0][0]
-        last_entry = sorted_transitions[0][1]
-        for t in sorted_transitions:
-            # two types of transitions: new pos, or same pos, entry to exit
-            if last_pos != t[0] or last_entry != t[1]:
-                # save interval
-                partitions.append(((cur_min, t[0]), list(cur_attrs)))
-                cur_min = t[0]
-
-            if t[1] == 1:   # entry case
-                cur_attrs.append(t[2])
-            else:           # exit case
-                cur_attrs.remove(t[2])
-
-            last_pos = t[0]
-            last_entry = t[1]
-
-        sorted_partitions = sorted(partitions, key=lambda p: -len(p[1]))
-
-        for p in sorted_partitions:
-            print('Part: {}, Attrs: {}'.format(p[0], len(p[1])))
-
-        return sorted_partitions
 
 class Exhaustive(Base):
     def execute(self, cqs):
