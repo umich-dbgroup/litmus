@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import argparse
+import ConfigParser
 from collections import OrderedDict
 import json
 import os
@@ -51,7 +52,10 @@ def main():
     argparser.add_argument('--email')
     args = argparser.parse_args()
 
-    db = Database('root', '', '127.0.0.1', 'imdb', timeout=args.timeout)
+    config = ConfigParser.RawConfigParser(allow_no_value=True)
+    config.read('config.ini')
+
+    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, timeout=args.timeout)
     parser = SQLParser()
     tasks = load_tasks(args.data_dir, args.db)
 

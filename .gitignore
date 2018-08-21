@@ -1,3 +1,4 @@
 python/cache
 python/venv
+python/config.ini
 *.pyc
