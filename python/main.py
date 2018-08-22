@@ -56,8 +56,8 @@ def main():
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
-    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.read('database', 'cache_path'), timeout=args.timeout)
-    parser = SQLParser(config.read('parser', 'cache_path'))
+    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_path'), timeout=args.timeout)
+    parser = SQLParser(config.get('parser', 'cache_path'))
     tasks = load_tasks(args.data_dir, args.db)
 
     if args.qid is not None:
