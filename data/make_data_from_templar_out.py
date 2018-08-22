@@ -29,8 +29,9 @@ def main():
             if reading:
                 cur_CQs.append(line)
 
+    data = {k.zfill(3):v for k,v in all_CQs.items()}
     with open('Templar.json', 'w') as outfile:
-        json.dump(all_CQs, outfile)
+        json.dump(data, outfile, indent = 2, sort_keys=True)
 
 if __name__ == '__main__':
     main()
