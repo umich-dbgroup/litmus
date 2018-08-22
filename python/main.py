@@ -5,6 +5,7 @@ import ConfigParser
 from collections import OrderedDict
 import json
 import os
+import traceback
 
 from algorithm.algorithms import Base, Partition, Overlap, Exhaustive
 from utils.database import Database
@@ -60,18 +61,24 @@ def main():
     parser = SQLParser(config.get('parser', 'cache_path'))
     tasks = load_tasks(args.data_dir, args.db)
 
-    if args.qid is not None:
-        # if executing single query
-        execute_mode(args.mode, db, parser, args.qid, tasks[args.qid])
-    else:
-        # if executing all queries
-        sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
-        for qid, cqs in sorted_tasks.items():
-            execute_mode(args.mode, db, parser, qid, cqs)
-
-    if args.email is not None:
-        mailer = Mailer()
-        mailer.send(args.email, 'Done {}'.format(args.db), 'Done')
+    try:
+        if args.qid is not None:
+            # if executing single query
+            execute_mode(args.mode, db, parser, args.qid, tasks[args.qid])
+        else:
+            # if executing all queries
+            sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
+            for qid, cqs in sorted_tasks.items():
+                execute_mode(args.mode, db, parser, qid, cqs)
+        if args.email is not None:
+            mailer = Mailer()
+            mailer.send(args.email, 'Done {}'.format(args.db), 'Done')
+    except Exception as e:
+        stacktrace = str(traceback.format_exc())
+        if args.email is not None:
+            mailer = Mailer()
+            mailer.send(args.email, 'Error {}'.format(args.db), stacktrace)
+        print(stacktrace)
 
 if __name__ == '__main__':
     main()
