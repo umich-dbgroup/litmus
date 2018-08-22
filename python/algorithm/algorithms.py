@@ -12,7 +12,7 @@ from utils.interval import ColumnIntervals
 
 __all__ = ['Base', 'Partition', 'Overlap', 'Exhaustive']
 
-class Base:
+class Base(object):
     def __init__(self, db, parser = None):
         self.db = db
         self.parser = parser

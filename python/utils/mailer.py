@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 
 import smtplib
 
-class Mailer:
+class Mailer(object):
     def __init__(self, login = 'cannoliemailer@gmail.com', password = 'cannoli123', host = 'smtp.gmail.com', port = 587):
         self.login = login
         self.password = password
