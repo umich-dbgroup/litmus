@@ -3,6 +3,7 @@ __all__ = ['SQLParser']
 import os
 import pickle
 import time
+import traceback
 
 from moz_sql_parser import parse
 from progress.bar import ChargingBar
@@ -53,15 +54,23 @@ class SQLParser:
 
         queries = {}
         from_cache = 0
+        errors = []
         for query_id, query_str in query_strs.items():
-            query, cached = self.parse_one(query_str)
-            if cached:
-                from_cache += 1
-            queries[query_id] = query
+            try:
+                query, cached = self.parse_one(query_str)
+                if cached:
+                    from_cache += 1
+                queries[query_id] = query
+            except Exception as e:
+                print(query_str)
+                print(traceback.format_exc())
+                errors.append(query_id)
             bar.next()
         bar.finish()
         parse_time = time.time() - start
-        print("Done parsing [{}s] (From cache: {}/{})".format(parse_time, from_cache, len(query_strs)))
+        print("From cache: {}/{}".format(from_cache, len(query_strs)))
+        print("Parse errors: {}/{}".format(len(errors), len(query_strs)))
+        print("Done parsing [{}s]".format(parse_time))
         return queries, parse_time
 
 class Query:

@@ -18,11 +18,11 @@ class Base:
         self.parser = parser
 
     def execute(self, cqs):
-        tuples, valid_cqs, timed_out, query_time = self.run_cqs(cqs)
+        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
 
         sorted_tuples = OrderedDict(sorted(tuples.items(), key=lambda t: len(t[1]), reverse=True))
 
-        self.print_stats(len(cqs), timed_out, len(valid_cqs))
+        self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
 
         if valid_cqs > 0:
             print('Avg. tuples per CQ: {}'.format(len(tuples)/len(valid_cqs)))
@@ -36,6 +36,7 @@ class Base:
     def run_cqs(self, cqs, msg_append=''):
         valid_cqs = []
         timed_out = 0
+        sql_errors = 0
         tuples = {}
 
         bar = ChargingBar('Running CQs{}'.format(msg_append), max=len(cqs), suffix='%(index)d/%(max)d (%(percent)d%%)')
@@ -57,15 +58,17 @@ class Base:
                         if t not in tuples:
                             tuples[t] = []
                         tuples[t].append(cqid)
-            except Exception, exc:
-                if str(exc).startswith('Timeout'):
+            except Exception as e:
+                if str(e).startswith('Timeout'):
                     timed_out += 1
+                else:
+                    sql_errors += 1
             bar.next()
         bar.finish()
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
 
-        return tuples, valid_cqs, timed_out, query_time
+        return tuples, valid_cqs, timed_out, sql_errors, query_time
 
     def dist(self, cqs, t, cqids):
         Q_len = len(cqs)
@@ -87,9 +90,10 @@ class Base:
         print("Done calculating dists [{}s]".format(dist_time))
         return sorted_tuple_dists, dist_time
 
-    def print_stats(self, cq_count, timeout_count, valid_count):
+    def print_stats(self, cq_count, timeout_count, sql_errors, valid_count):
         print('Total CQs: {}'.format(cq_count))
         print('Timed Out CQs: {}'.format(timeout_count))
+        print('SQL Error CQs: {}'.format(sql_errors))
         print('Valid CQs: {}'.format(valid_count))
 
     def print_top_dists(self, sorted_dists, tuples, k):
@@ -108,7 +112,12 @@ class Partition(Base):
         for cqid, cq in cqs_parsed.items():
             proj_types = ()
             for proj in cq.projs:
-                proj_types = proj_types + (self.db.get_attr(proj).type,)
+                attr_type = None
+                if isinstance(proj, dict):
+                    attr_type = 'aggr'
+                else:
+                    attr_type = self.db.get_attr(proj).type
+                proj_types = proj_types + (attr_type,)
 
             if proj_types not in type_parts:
                 type_parts[proj_types] = {}
@@ -121,7 +130,8 @@ class Partition(Base):
         partition_time = time.time() - start
         print("Done partitioning [{}s]".format(partition_time))
 
-        tuples, valid_cqs, timed_out, query_time = self.run_cqs(type_cqs, msg_append=' ' + str(type))
+        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(type_cqs, msg_append=' ' + str(type))
+        self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
         sorted_dists, dist_time = self.calc_dists(cqs, tuples)
         self.print_top_dists(sorted_dists, tuples, 5)
 
@@ -144,7 +154,12 @@ class Overlap(Base):
             proj_types = ()
             for colnum, proj in enumerate(cq.projs):
                 attr = self.db.get_attr(proj)
-                proj_types = proj_types + (attr.type,)
+                if isinstance(proj, dict):
+                    attr_type = 'aggr'
+                    continue
+                else:
+                    attr_type = attr.type
+                proj_types = proj_types + (attr_type,)
 
                 if colnum not in attrs_added:
                     attrs_added[colnum] = set()
@@ -207,7 +222,8 @@ class Overlap(Base):
 
             total_interval_time += interval_time
 
-            tuples, valid_cqs, timed_out, query_time = self.run_cqs(narrowed_cqs, msg_append=' ' + str(type))
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(narrowed_cqs, msg_append=' ' + str(type))
+            self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
             sorted_dists, dist_time = self.calc_dists(cqs, tuples)
             self.print_top_dists(sorted_dists, tuples, 5)
             print()
@@ -224,9 +240,9 @@ class Overlap(Base):
 
 class Exhaustive(Base):
     def execute(self, cqs):
-        tuples, valid_cqs, timed_out, query_time = self.run_cqs(cqs)
+        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
         sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-        self.print_stats(len(cqs), timed_out, len(valid_cqs))
+        self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
         self.print_top_dists(sorted_dists, tuples, 5)
 
         return 0, query_time, dist_time

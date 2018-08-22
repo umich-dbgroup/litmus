@@ -144,7 +144,8 @@ class Database:
                 query_tuples.add(result)
             cursor.close()
             return query_tuples
-        except Exception, exc:
+        except Exception as e:
             cursor.close()
-            if str(exc).startswith('3024'):
+            if str(e).startswith('3024'):
                 raise Exception('Timeout: Query timed out.')
+            raise e
