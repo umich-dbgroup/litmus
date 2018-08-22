@@ -3,7 +3,7 @@ user = root
 pw =
 host = 127.0.0.1
 port = 3306
-cache_path = ../cache/database.cache
+cache_path = cache/database.cache
 
 [parser]
-cache_path = ../cache/parser.cache
+cache_path = cache/parser.cache
