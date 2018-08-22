@@ -8,7 +8,7 @@ from moz_sql_parser import parse
 from progress.bar import ChargingBar
 
 class SQLParser:
-    def __init__(self, cache_path = 'cache/parser.cache'):
+    def __init__(self, cache_path):
         self.cache_path = cache_path
         self.load_cache()
 

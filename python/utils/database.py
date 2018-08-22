@@ -1,5 +1,7 @@
 __all__ = ['Database']
 
+import os
+import pickle
 import re
 import time
 
@@ -39,16 +41,31 @@ class Database:
     # relations to ignore from db
     IGNORE_RELS = ['size', 'history']
 
-    def __init__(self, user, pw, host, db, timeout=15000):
+    def __init__(self, user, pw, host, db, cache_path, timeout=15000):
         print("Loading database...")
         start = time.time()
         self.conn = mysql.connector.connect(user=user, password=pw, host=host, database=db)
         self.name = db
-        self.load_relations()
+        self.cache_path = cache_path
+
+        loaded_from_cache = self.load_relations()
         self.set_timeout(timeout)
+        print("Loaded from cache: {}".format(loaded_from_cache))
         print("Done loading database [{}s]".format(time.time()-start))
 
+    def load_cache(self):
+        if os.path.exists(self.cache_path):
+            self.relations = pickle.load(open(self.cache_path, 'rb'))
+            return True
+        return False
+
+    def save_cache(self):
+        pickle.dump(self.relations, open(self.cache_path, 'wb'))
+
     def load_relations(self):
+        if self.load_cache():
+            return True
+
         self.relations = {}
 
         # get relation names
@@ -78,6 +95,11 @@ class Database:
 
             self.relations[rel_name] = Relation(rel_name, attrs)
 
+        # save to cache
+        self.save_cache()
+
+        return False
+
     def cursor(self):
         return self.conn.cursor()
 
@@ -91,7 +113,7 @@ class Database:
     def get_attr(self, frag):
         if '.' not in frag:
             return None
-        
+
         rel_alias, attr_name = frag.split('.')
         m = re.match('([A-Za-z_]+)_[0-9]+', rel_alias)
         if m:
