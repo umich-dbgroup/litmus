@@ -1,0 +1,334 @@
+Loading database...
+Loaded from cache: True
+Done loading database [0.00814008712769s]
+QUERY 1: partition
+Parsing queries...
+From cache: 12/12
+Parse errors: 0/12
+Done parsing [0.000633001327515s]
+Partitioning CQs by type...
+Done partitioning [0.000452995300293s]
+Done executing CQs [36.3085598946s]
+Total CQs: 12
+Timed Out CQs: 0
+SQL Error CQs: 0
+Valid CQs: 5
+Calculating dist values...
+Done calculating dists [0.00020694732666s]
+Top 5 tuples:
+(1943, u'Dead Poets Society'), Dist: 3.33333333333, # CQs: 2
+(1948, u'Dead Poets Society'), Dist: 1.83333333333, # CQs: 1
+(1945, u'Dead Poets Society'), Dist: 1.83333333333, # CQs: 1
+(1944, u'Dead Poets Society'), Dist: 1.83333333333, # CQs: 1
+(1989, u'Dead Poets Society'), Dist: 1.83333333333, # CQs: 1
+DONE [Parse Time: 0.000633001327515s, Query Time: 36.3085598946s, Computation Time: 0.000659942626953s]
+
+QUERY 2: partition
+Parsing queries...
+From cache: 28/28
+Parse errors: 0/28
+Done parsing [0.00275993347168s]
+Partitioning CQs by type...
+Done partitioning [0.000943899154663s]
+Done executing CQs [146.626657009s]
+Total CQs: 28
+Timed Out CQs: 5
+SQL Error CQs: 0
+Valid CQs: 4
+Calculating dist values...
+Done calculating dists [0.000162124633789s]
+Top 5 tuples:
+(1958, u'Ellen Page'), Dist: 3.71428571429, # CQs: 2
+(1987, u'Ellen Page'), Dist: 3.71428571429, # CQs: 2
+(1976, u'Ellen Page'), Dist: 1.92857142857, # CQs: 1
+(1956, u'Ellen Page'), Dist: 1.92857142857, # CQs: 1
+DONE [Parse Time: 0.00275993347168s, Query Time: 146.626657009s, Computation Time: 0.00110602378845s]
+
+QUERY 3: partition
+Parsing queries...
+From cache: 42/42
+Parse errors: 0/42
+Done parsing [0.00398993492126s]
+Partitioning CQs by type...
+Done partitioning [0.00135493278503s]
+Done executing CQs [518.629535913s]
+Total CQs: 42
+Timed Out CQs: 32
+SQL Error CQs: 0
+Valid CQs: 1
+Calculating dist values...
+Done calculating dists [0.398111104965s]
+Top 5 tuples:
+(u'Italy', 4662653), Dist: 1.95238095238, # CQs: 1
+(u'Belgium', 3805597), Dist: 1.95238095238, # CQs: 1
+(u'Germany', 151320), Dist: 1.95238095238, # CQs: 1
+(u'Norway', 4345878), Dist: 1.95238095238, # CQs: 1
+(u'USA', 3888661), Dist: 1.95238095238, # CQs: 1
+DONE [Parse Time: 0.00398993492126s, Query Time: 518.629535913s, Computation Time: 0.39946603775s]
+
+QUERY 4: partition
+Parsing queries...
+From cache: 11/11
+Parse errors: 0/11
+Done parsing [0.000744104385376s]
+Partitioning CQs by type...
+Done partitioning [0.00270891189575s]
+Done executing CQs [66.4017510414s]
+Total CQs: 11
+Timed Out CQs: 2
+SQL Error CQs: 0
+Valid CQs: 2
+Calculating dist values...
+Done calculating dists [0.244431972504s]
+Top 5 tuples:
+(u'On the Way', 2015), Dist: 3.27272727273, # CQs: 2
+(u'Richard G\xf6lz. Der Kantor Schwabens', 2015), Dist: 3.27272727273, # CQs: 2
+(u'Straight Outta Compton', 2015), Dist: 3.27272727273, # CQs: 2
+(u'Friends in High Places', 2015), Dist: 1.81818181818, # CQs: 1
+(u'The Ticket Mystery', 2015), Dist: 1.81818181818, # CQs: 1
+DONE [Parse Time: 0.000744104385376s, Query Time: 66.4017510414s, Computation Time: 0.247140884399s]
+
+QUERY 5: partition
+Parsing queries...
+From cache: 8/8
+Parse errors: 0/8
+Done parsing [0.000576019287109s]
+Partitioning CQs by type...
+Done partitioning [0.000263929367065s]
+Done executing CQs [108.427791834s]
+Total CQs: 8
+Timed Out CQs: 7
+SQL Error CQs: 0
+Valid CQs: 1
+Calculating dist values...
+Done calculating dists [0.0157129764557s]
+Top 5 tuples:
+(u'Frank Gallegos', u'Los Angeles'), Dist: 1.75, # CQs: 1
+(u'Cali Lee', u'Los Angeles'), Dist: 1.75, # CQs: 1
+(u'Nathan Lee', u'Los Angeles'), Dist: 1.75, # CQs: 1
+(u'Yves Bright', u'Los Angeles'), Dist: 1.75, # CQs: 1
+(u'Robert Brent', u'Los Angeles'), Dist: 1.75, # CQs: 1
+DONE [Parse Time: 0.000576019287109s, Query Time: 108.427791834s, Computation Time: 0.0159769058228s]
+
+QUERY 6: partition
+Parsing queries...
+From cache: 18/18
+Parse errors: 0/18
+Done parsing [0.00282597541809s]
+Partitioning CQs by type...
+Done partitioning [0.000789880752563s]
+Done executing CQs [231.198071003s]
+Total CQs: 18
+Timed Out CQs: 11
+SQL Error CQs: 0
+Valid CQs: 2
+Calculating dist values...
+Done calculating dists [0.040787935257s]
+Top 5 tuples:
+(u'Mitchell Kosterman', u'Canada'), Dist: 1.88888888889, # CQs: 1
+(u"Catherine O'Hara", u'Canada'), Dist: 1.88888888889, # CQs: 1
+(u'Amanda Weise', u'Canada'), Dist: 1.88888888889, # CQs: 1
+(u'Caroline Lesley', u'Canada'), Dist: 1.88888888889, # CQs: 1
+(u'Jackson Taylor', u'Canada'), Dist: 1.88888888889, # CQs: 1
+DONE [Parse Time: 0.00282597541809s, Query Time: 231.198071003s, Computation Time: 0.0415778160095s]
+
+QUERY 7: partition
+Parsing queries...
+From cache: 9/9
+Parse errors: 0/9
+Done parsing [0.00121784210205s]
+Partitioning CQs by type...
+Done partitioning [0.000447988510132s]
+Done executing CQs [123.101324081s]
+Total CQs: 9
+Timed Out CQs: 8
+SQL Error CQs: 0
+Valid CQs: 1
+Calculating dist values...
+Done calculating dists [0.081337928772s]
+Top 5 tuples:
+(u'Shawn Caple', 1984), Dist: 1.77777777778, # CQs: 1
+(u'Nat\xe1lia Guimar\xe3es', 1984), Dist: 1.77777777778, # CQs: 1
+(u'Kornelia Angowska', 1984), Dist: 1.77777777778, # CQs: 1
+(u'Carin da Silva', 1984), Dist: 1.77777777778, # CQs: 1
+(u'Allison Hirschlag', 1984), Dist: 1.77777777778, # CQs: 1
+DONE [Parse Time: 0.00121784210205s, Query Time: 123.101324081s, Computation Time: 0.0817859172821s]
+
+QUERY 8: partition
+Parsing queries...
+From cache: 28/28
+Parse errors: 0/28
+Done parsing [0.00125193595886s]
+Partitioning CQs by type...
+Done partitioning [0.00045108795166s]
+Done executing CQs [141.41738987s]
+Total CQs: 28
+Timed Out CQs: 5
+SQL Error CQs: 0
+Valid CQs: 3
+Calculating dist values...
+Done calculating dists [8.79764556885e-05s]
+Top 5 tuples:
+(1976, u'Benedict Cumberbatch'), Dist: 3.71428571429, # CQs: 2
+(1900, u'Benedict Cumberbatch'), Dist: 1.92857142857, # CQs: 1
+(1984, u'Benedict Cumberbatch'), Dist: 1.92857142857, # CQs: 1
+DONE [Parse Time: 0.00125193595886s, Query Time: 141.41738987s, Computation Time: 0.000539064407349s]
+
+QUERY 9: partition
+Parsing queries...
+From cache: 7/7
+Parse errors: 0/7
+Done parsing [0.000953912734985s]
+Partitioning CQs by type...
+Done partitioning [0.000370025634766s]
+Done executing CQs [89.4097969532s]
+Total CQs: 7
+Timed Out CQs: 3
+SQL Error CQs: 0
+Valid CQs: 3
+Calculating dist values...
+Done calculating dists [8.01086425781e-05s]
+Top 5 tuples:
+(u'Austria', u'Christoph Waltz'), Dist: 2.85714285714, # CQs: 2
+(u'Germany', u'Christoph Waltz'), Dist: 2.85714285714, # CQs: 2
+DONE [Parse Time: 0.000953912734985s, Query Time: 89.4097969532s, Computation Time: 0.000450134277344s]
+
+QUERY 10: partition
+Parsing queries...
+From cache: 56/56
+Parse errors: 0/56
+Done parsing [0.00563406944275s]
+Partitioning CQs by type...
+Done partitioning [0.00137591362s]
+Done executing CQs [315.773715019s]
+Total CQs: 56
+Timed Out CQs: 10
+SQL Error CQs: 0
+Valid CQs: 13
+Calculating dist values...
+Done calculating dists [0.000372171401978s]
+Top 5 tuples:
+(1959, u'Kevin Spacey'), Dist: 16.4285714286, # CQs: 10
+(1973, u'Kevin Spacey'), Dist: 10.7142857143, # CQs: 6
+(1960, u'Kevin Spacey'), Dist: 7.42857142857, # CQs: 4
+(1958, u'Kevin Spacey'), Dist: 5.67857142857, # CQs: 3
+(1977, u'Kevin Spacey'), Dist: 3.85714285714, # CQs: 2
+DONE [Parse Time: 0.00563406944275s, Query Time: 315.773715019s, Computation Time: 0.00174808502197s]
+
+QUERY 11: partition
+Parsing queries...
+From cache: 56/56
+Parse errors: 0/56
+Done parsing [0.0052227973938s]
+Partitioning CQs by type...
+Done partitioning [0.00171279907227s]
+Done executing CQs [315.979957819s]
+Total CQs: 56
+Timed Out CQs: 10
+SQL Error CQs: 0
+Valid CQs: 13
+Calculating dist values...
+Done calculating dists [0.000351905822754s]
+Top 5 tuples:
+(1959, u'Kevin Spacey'), Dist: 16.4285714286, # CQs: 10
+(1973, u'Kevin Spacey'), Dist: 10.7142857143, # CQs: 6
+(1960, u'Kevin Spacey'), Dist: 7.42857142857, # CQs: 4
+(1958, u'Kevin Spacey'), Dist: 5.67857142857, # CQs: 3
+(1977, u'Kevin Spacey'), Dist: 3.85714285714, # CQs: 2
+DONE [Parse Time: 0.0052227973938s, Query Time: 315.979957819s, Computation Time: 0.00206470489502s]
+
+QUERY 12: partition
+Parsing queries...
+From cache: 68/68
+Parse errors: 0/68
+Done parsing [0.00561904907227s]
+Partitioning CQs by type...
+Done partitioning [0.00203800201416s]
+Done executing CQs [796.020437002s]
+Total CQs: 68
+Timed Out CQs: 28
+SQL Error CQs: 0
+Valid CQs: 30
+Calculating dist values...
+Done calculating dists [0.00202989578247s]
+Top 5 tuples:
+(u'South Orange', u'Kevin Spacey'), Dist: 14.1176470588, # CQs: 8
+(u'Kevin Spacey', u'Kevin Spacey'), Dist: 10.9411764706, # CQs: 6
+(u'Trigger Street Productions', u'Kevin Spacey'), Dist: 7.52941176471, # CQs: 4
+(u'Archer Street Productions', u'Kevin Spacey'), Dist: 5.73529411765, # CQs: 3
+(u'QI Quality International GmbH & Co. KG', u'Kevin Spacey'), Dist: 5.73529411765, # CQs: 3
+DONE [Parse Time: 0.00561904907227s, Query Time: 796.020437002s, Computation Time: 0.00406789779663s]
+
+QUERY 13: partition
+Parsing queries...
+From cache: 56/56
+Parse errors: 0/56
+Done parsing [0.00486207008362s]
+Partitioning CQs by type...
+Done partitioning [0.00117206573486s]
+Done executing CQs [314.611409903s]
+Total CQs: 56
+Timed Out CQs: 11
+SQL Error CQs: 0
+Valid CQs: 13
+Calculating dist values...
+Done calculating dists [0.000258207321167s]
+Top 5 tuples:
+(1959, u'Kevin Spacey'), Dist: 16.4285714286, # CQs: 10
+(1973, u'Kevin Spacey'), Dist: 10.7142857143, # CQs: 6
+(1960, u'Kevin Spacey'), Dist: 7.42857142857, # CQs: 4
+(1958, u'Kevin Spacey'), Dist: 5.67857142857, # CQs: 3
+(1977, u'Kevin Spacey'), Dist: 3.85714285714, # CQs: 2
+DONE [Parse Time: 0.00486207008362s, Query Time: 314.611409903s, Computation Time: 0.00143027305603s]
+
+QUERY 14: partition
+Parsing queries...
+From cache: 0/28
+Parse errors: 0/28
+Done parsing [10.2710239887s]
+Partitioning CQs by type...
+Done partitioning [0.000426054000854s]
+Done executing CQs [314.524879932s]
+Total CQs: 28
+Timed Out CQs: 9
+SQL Error CQs: 0
+Valid CQs: 13
+Calculating dist values...
+Done calculating dists [0.000211000442505s]
+Top 5 tuples:
+(u'USA', u'Kevin Spacey'), Dist: 13.3571428571, # CQs: 11
+(u'UK', u'Kevin Spacey'), Dist: 9.42857142857, # CQs: 6
+(u'Italy', u'Kevin Spacey'), Dist: 5.35714285714, # CQs: 3
+(u'Greece', u'Kevin Spacey'), Dist: 3.71428571429, # CQs: 2
+(u'Czechoslovakia', u'Kevin Spacey'), Dist: 3.71428571429, # CQs: 2
+DONE [Parse Time: 10.2710239887s, Query Time: 314.524879932s, Computation Time: 0.000637054443359s]
+
+QUERY 15: partition
+Parsing queries...
+From cache: 0/9
+Parse errors: 0/9
+Done parsing [3.06635594368s]
+Partitioning CQs by type...
+Done partitioning [0.00019907951355s]
+Done executing CQs [123.362486124s]
+Total CQs: 9
+Timed Out CQs: 8
+SQL Error CQs: 0
+Valid CQs: 1
+Calculating dist values...
+Done calculating dists [0.0246171951294s]
+Top 5 tuples:
+(u'Raul Cremona', u'Italy'), Dist: 1.77777777778, # CQs: 1
+(u'Teddy Reno', u'Italy'), Dist: 1.77777777778, # CQs: 1
+(u'Alessandro Roja', u'Italy'), Dist: 1.77777777778, # CQs: 1
+(u'Alessandro Tiberi', u'Italy'), Dist: 1.77777777778, # CQs: 1
+(u'Gabriele Foresti', u'Italy'), Dist: 1.77777777778, # CQs: 1
+DONE [Parse Time: 3.06635594368s, Query Time: 123.362486124s, Computation Time: 0.0248162746429s]
+
+QUERY 16: partition
+Parsing queries...
+From cache: 0/11
+Parse errors: 0/11
+Done parsing [4.01584887505s]
+Partitioning CQs by type...
+Done partitioning [0.000257015228271s]
