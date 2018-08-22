@@ -36,8 +36,9 @@ class SQLParser:
                 projs.append(sel['value'])
 
         preds = []
-        for op, vals in parsed['where'].items():
-            preds.append((op, vals))
+        if 'where' in parsed:
+            for op, vals in parsed['where'].items():
+                preds.append((op, vals))
 
         query = Query(query_str, projs, preds)
 
