@@ -1,3 +1,5 @@
+beautifultable==0.5.2
+enum34==1.1.6
 mo-collections==2.16.18199
 mo-dots==2.7.18148
 mo-future==2.4.18148
