@@ -7,8 +7,9 @@ import json
 import os
 
 from algorithm.algorithms import Base, Partition, Overlap, Exhaustive
-from utils.parser import SQLParser
 from utils.database import Database
+from utils.mailer import Mailer
+from utils.parser import SQLParser
 
 def execute_mode(mode, db, parser, qid, cqs):
     print("QUERY {}: {}".format(qid, mode))
