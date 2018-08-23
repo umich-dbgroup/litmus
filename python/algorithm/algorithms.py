@@ -4,7 +4,7 @@ import sys
 import time
 
 from collections import OrderedDict
-from progress.bar import ChargingBar
+from tqdm import tqdm
 
 sys.path.append('..')
 from utils.parser import Query
@@ -39,7 +39,7 @@ class Base(object):
         sql_errors = 0
         tuples = {}
 
-        bar = ChargingBar('Running CQs{}'.format(msg_append), max=len(cqs), suffix='%(index)d/%(max)d (%(percent)d%%)')
+        bar = tqdm(total=len(cqs), desc='Running CQs{}'.format(msg_append))
 
         start = time.time()
         for cqid, cq in cqs.items():
@@ -63,8 +63,8 @@ class Base(object):
                     timed_out += 1
                 else:
                     sql_errors += 1
-            bar.next()
-        bar.finish()
+            bar.update(1)
+        bar.close()
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
 

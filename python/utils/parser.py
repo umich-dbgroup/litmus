@@ -6,7 +6,7 @@ import time
 import traceback
 
 from moz_sql_parser import parse
-from progress.bar import ChargingBar
+from tqdm import tqdm
 
 class SQLParser(object):
     def __init__(self, cache_path):
@@ -52,7 +52,7 @@ class SQLParser(object):
         print("Parsing queries...")
         start = time.time()
 
-        bar = ChargingBar('Parsing queries', max=len(query_strs), suffix='%(index)d/%(max)d (%(percent)d%%)')
+        bar = tqdm(total=len(query_strs), desc='Parsing queries')
 
         queries = {}
         from_cache = 0
@@ -67,8 +67,8 @@ class SQLParser(object):
                 print(query_str)
                 print(traceback.format_exc())
                 errors.append(query_id)
-            bar.next()
-        bar.finish()
+            bar.update(1)
+        bar.close()
         parse_time = time.time() - start
         print("From cache: {}/{}".format(from_cache, len(query_strs)))
         print("Parse errors: {}/{}".format(len(errors), len(query_strs)))
