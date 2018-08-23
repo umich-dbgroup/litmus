@@ -11,8 +11,9 @@ from algorithm.algorithms import Base, Partition, Overlap, Exhaustive
 from utils.database import Database
 from utils.mailer import Mailer
 from utils.parser import SQLParser
+from utils.text_intersect import TextIntersectDatabase
 
-def execute_mode(mode, db, parser, qid, cqs):
+def execute_mode(mode, db, tidb, parser, qid, cqs):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
@@ -24,7 +25,7 @@ def execute_mode(mode, db, parser, qid, cqs):
     elif mode == 'partition':
         algorithm = Partition(db, parser)
     elif mode == 'overlap':
-        algorithm = Overlap(db, parser)
+        algorithm = Overlap(db, parser, tidb)
 
     pt, qt, ct = algorithm.execute(cqs)
 
@@ -59,17 +60,24 @@ def main():
 
     db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_path'), timeout=args.timeout)
     parser = SQLParser(config.get('parser', 'cache_path'))
+
+    # only load tidb if mode is overlap
+    if args.mode == 'overlap':
+        tidb = TextIntersectDatabase.from_file(db, os.path.join(config.get('tidb', 'dir'), args.db + '.tidb'))
+    else:
+        tidb = None
+
     tasks = load_tasks(args.data_dir, args.db)
 
     try:
         if args.qid is not None:
             # if executing single query
-            execute_mode(args.mode, db, parser, args.qid, tasks[args.qid])
+            execute_mode(args.mode, db, tidb, parser, args.qid, tasks[args.qid])
         else:
             # if executing all queries
             sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
             for qid, cqs in sorted_tasks.items():
-                execute_mode(args.mode, db, parser, qid, cqs)
+                execute_mode(args.mode, db, tidb, parser, qid, cqs)
         if args.email is not None:
             mailer = Mailer()
             mailer.send(args.email, 'Done {}'.format(args.db), 'Done')

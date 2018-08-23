@@ -15,8 +15,13 @@ class TextIntersectDatabase(object):
         self.max_size = max_size
         self.tis = None     # set size -> attr set -> vals
 
-        self.load()
-        self.build_intersects()
+    @staticmethod
+    def from_file(db, path):
+        print('Loading text intersect database from <{}>...'.format(path))
+        start = time.time()
+        tidb = TextIntersectDatabase(db, path)
+        tidb.load()
+        print('Loaded text intersect database. [{}s]'.format(time.time()-start))
 
     def save(self):
         pickle.dump(self.tis, open(self.path, 'wb'))
@@ -27,6 +32,10 @@ class TextIntersectDatabase(object):
             return True
         self.tis = {}
         return False
+
+    # top_n
+    def top_n(self, attrs, n):
+        return self.get_ranked_intersects(attrs)[0:n]
 
     # returns intersects with attrs by (# attrs, # intersecting vals) desc
     def get_ranked_intersects(self, attrs):

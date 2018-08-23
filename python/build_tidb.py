@@ -17,7 +17,9 @@ def main():
 
     db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_path'), timeout=None)
 
-    TextIntersectDatabase(db, os.path.join(config.get('tidb', 'dir'), args.db + '.tidb'))
+    tidb = TextIntersectDatabase(db, os.path.join(config.get('tidb', 'dir'), args.db + '.tidb'))
+    tidb.load()
+    tidb.build_intersects()
 
 if __name__ == '__main__':
     main()

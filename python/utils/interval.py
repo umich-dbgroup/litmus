@@ -5,7 +5,7 @@ class ColumnIntervals(object):
         self.intervals = None     # call update() before retrieval!
 
     def top_n(self, n):
-        return self.intervals[0:n+1]
+        return self.intervals[0:n]
 
     def interval_count(self):
         return len(self.intervals)

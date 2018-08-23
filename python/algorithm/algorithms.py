@@ -13,9 +13,10 @@ from utils.interval import ColumnIntervals
 __all__ = ['Base', 'Partition', 'Overlap', 'Exhaustive']
 
 class Base(object):
-    def __init__(self, db, parser = None):
+    def __init__(self, db, parser=None, tidb=None):
         self.db = db
         self.parser = parser
+        self.tidb = tidb
 
     def execute(self, cqs):
         tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
@@ -198,12 +199,15 @@ class Overlap(Base):
         total_dist_time = 0
 
         max_intrvls = ColumnIntervals.max_interval_count(intervals.values())
-        for n in range(0, max_intrvls):
-            print('Rewriting queries for top-{} intervals...'.format(n+1))
+        for n in range(1, max_intrvls):
+            print('Rewriting queries for top-{} intervals...'.format(n))
             start = time.time()
             narrowed_cqs = dict(type_cqs)
             after_partition_cqs = {}
             for colnum, coltype in enumerate(type):
+                if coltype == 'text':
+                    # TODO: handle text intersect
+                    pass
                 if coltype == 'num':
                     top_n = intervals[colnum].top_n(n)
 
