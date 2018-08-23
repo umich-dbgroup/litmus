@@ -7,7 +7,7 @@ import time
 
 import mysql.connector
 
-class Attribute:
+class Attribute(object):
     def __init__(self, name, type):
         self.rel = None
         self.name = name
@@ -24,7 +24,7 @@ class Attribute:
         self.min = min
         self.max = max
 
-class Relation:
+class Relation(object):
     def __init__(self, name, attrs):
         self.name = name
         self.attrs = attrs
@@ -37,7 +37,7 @@ def convert_mysql_type(mysql_type):
     else:
         return mysql_type
 
-class Database:
+class Database(object):
     # relations to ignore from db
     IGNORE_RELS = ['size', 'history']
 

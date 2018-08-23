@@ -1,4 +1,4 @@
-class ColumnIntervals:
+class ColumnIntervals(object):
     def __init__(self, colnum):
         self.colnum = colnum
         self.attrs = []
@@ -67,7 +67,7 @@ class ColumnIntervals:
             attrs.extend(ci.attrs)
         return attrs
 
-class Interval:
+class Interval(object):
     def __init__(self, min, max, attrs):
         self.min = min
         self.max = max

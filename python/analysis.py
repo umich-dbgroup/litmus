@@ -15,6 +15,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('db')
     parser.add_argument('mode')
+    parser.add_argument('--min', type=int)
+    parser.add_argument('--max', type=int)
     args = parser.parse_args()
 
     results = {}
@@ -27,9 +29,11 @@ def main():
             qid_m = qid_re.match(line)
             if qid_m:
                 if cur_query is not None:
-                    if 'dist' not in cur_query:
-                        cur_query['dist'] = 0
-                    results[cur_query['id']] = cur_query
+                    out_of_range = (args.min and cur_query['id'] < args.min) or (args.max and cur_query['id'] > args.max)
+                    if not out_of_range:
+                        if 'dist' not in cur_query:
+                            cur_query['dist'] = 0
+                        results[cur_query['id']] = cur_query
                 cur_query = {'id': int(qid_m.group(1))}
                 continue
 

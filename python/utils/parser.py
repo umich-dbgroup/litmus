@@ -8,7 +8,7 @@ import traceback
 from moz_sql_parser import parse
 from progress.bar import ChargingBar
 
-class SQLParser:
+class SQLParser(object):
     def __init__(self, cache_path):
         self.cache_path = cache_path
         self.load_cache()
@@ -73,7 +73,7 @@ class SQLParser:
         print("Done parsing [{}s]".format(parse_time))
         return queries, parse_time
 
-class Query:
+class Query(object):
     def __init__(self, query_str, projs, preds):
         self.query_str = query_str
         self.projs = projs
