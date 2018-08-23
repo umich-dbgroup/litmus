@@ -91,12 +91,15 @@ class Query(object):
         for pred in query.preds:
             for val in pred[1]:
                 if pred[0] == 'eq' and db.get_attr(val) == attr:
-                    print('Skipping {}'.format(query.query_str))
                     return query
 
-        # TODO: if there are range preds in query disjoint with intervals, skip
+        # TODO: if there are range preds in query that are disjoint with intervals, skip
 
+        limited_strs = []
         for interval in intervals:
-            limited_str += ' AND {} >= {} AND {} <= {}'.format(proj, interval.min, proj, interval.max)
+            limited_strs.append('({} >= {} AND {} <= {})'.format(proj, interval.min, proj, interval.max))
 
-        return Query(limited_str, query.projs, query.preds)
+        limited_str = " OR ".join(limited_strs)
+        new_query_str = '{} AND ({})'.format(query.query_str, limited_str)
+
+        return Query(new_query_str, query.projs, query.preds)
