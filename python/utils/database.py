@@ -12,6 +12,7 @@ class Attribute(object):
         self.rel = None
         self.name = name
         self.type = type      # text, num
+        self.unique_count = None     # unique vals count
 
         if type == 'num':
             self.min = None
@@ -23,6 +24,34 @@ class Attribute(object):
     def set_range(self, min, max):
         self.min = min
         self.max = max
+
+    def __str__(self):
+        return '{}.{}'.format(self.rel.name, self.name)
+
+    def __hash__(self):
+        return hash(str(self))
+
+    def __eq__(self, other):
+        return str(self) == str(other)
+
+class AttributeSet(object):
+    def __init__(self, attrs):
+        self.attrs = sorted(attrs, key=lambda a: str(a))
+
+    def __iter__(self):
+        return iter(self.attrs)
+
+    def __getitem__(self, key):
+        return self.attrs[key]
+
+    def __len__(self):
+        return len(self.attrs)
+
+    def __hash__(self):
+        return hash(tuple(self.attrs))
+
+    def __eq__(self, other):
+        return self.attrs == other.attrs
 
 class Relation(object):
     def __init__(self, name, attrs):
@@ -49,7 +78,8 @@ class Database(object):
         self.cache_path = cache_path
 
         loaded_from_cache = self.load_relations()
-        self.set_timeout(timeout)
+        if timeout is not None:
+            self.set_timeout(timeout)
         print("Loaded from cache: {}".format(loaded_from_cache))
         print("Done loading database [{}s]".format(time.time()-start))
 
@@ -95,6 +125,9 @@ class Database(object):
 
             self.relations[rel_name] = Relation(rel_name, attrs)
 
+            for attr_name, attr in attrs.items():
+                attr.set_rel(self.relations[rel_name])
+
         # save to cache
         self.save_cache()
 
@@ -107,6 +140,14 @@ class Database(object):
         cursor = self.cursor()
         cursor.execute('SET SESSION MAX_EXECUTION_TIME={}'.format(timeout))
         cursor.close()
+
+    def get_text_attrs(self):
+        attrs = []
+        for rel_name, rel in self.relations.items():
+            for attr_name, attr in rel.attrs.items():
+                if attr.type == 'text':
+                    attrs.append(attr)
+        return attrs
 
     # given a fragment from a SQL statement (e.g. 'actor_0.name')
     # get the attribute

@@ -7,3 +7,6 @@ cache_path = cache/database.cache
 
 [parser]
 cache_path = cache/parser.cache
+
+[tidb]
+dir = tidb
