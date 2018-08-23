@@ -30,6 +30,8 @@ class SQLParser(object):
         parsed = parse(query_str)
 
         projs = []
+        if isinstance(parsed['select'], dict):
+            parsed['select'] = [parsed['select']]
         for sel in parsed['select']:
             if 'distinct' in sel['value']:
                 projs.append(sel['value']['distinct'])
