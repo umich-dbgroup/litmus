@@ -7,8 +7,9 @@ from collections import OrderedDict
 from tqdm import tqdm
 
 sys.path.append('..')
+from utils.overlap_types import ColumnNumIntervals, ColumnTextIntersects
 from utils.parser import Query
-from utils.interval import ColumnIntervals
+from utils.partition_set import PartitionSet
 
 __all__ = ['Base', 'Partition', 'Overlap', 'Exhaustive']
 
@@ -92,7 +93,7 @@ class Base(object):
         return sorted_tuple_dists, dist_time
 
     def print_stats(self, cq_count, timeout_count, sql_errors, valid_count):
-        print('Total CQs: {}'.format(cq_count))
+        print('Executed CQs: {}'.format(cq_count))
         print('Timed Out CQs: {}'.format(timeout_count))
         print('SQL Error CQs: {}'.format(sql_errors))
         print('Valid CQs: {}'.format(valid_count))
@@ -108,31 +109,20 @@ class Partition(Base):
 
         print("Partitioning CQs by type...")
         start = time.time()
-
-        type_parts = {}
-        for cqid, cq in cqs_parsed.items():
-            proj_types = ()
-            for proj in cq.projs:
-                attr_type = None
-                if isinstance(proj, dict):
-                    attr_type = 'aggr'
-                else:
-                    attr_type = self.db.get_attr(proj).type
-                proj_types = proj_types + (attr_type,)
-
-            if proj_types not in type_parts:
-                type_parts[proj_types] = {}
-            type_parts[proj_types][cqid] = cq
-
-        # Assume the largest type is most likely to produce your result
-        sorted_type_parts = OrderedDict(sorted(type_parts.items(), key=lambda t: len(t[1]), reverse=True))
-        type, type_cqs = sorted_type_parts.items()[0]
-
+        part_set = PartitionSet(self.db, cqs_parsed)
         partition_time = time.time() - start
         print("Done partitioning [{}s]".format(partition_time))
 
-        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(type_cqs, msg_append=' ' + str(type))
-        self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
+        for type, part in part_set:
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(type))
+            self.print_stats(len(part.cqs), timed_out, sql_errors, len(valid_cqs))
+
+            if not tuples:
+                print('No tuples found, executing next partition...')
+                continue
+            else:
+                break
+
         sorted_dists, dist_time = self.calc_dists(cqs, tuples)
         self.print_top_dists(sorted_dists, tuples, 5)
 
@@ -143,104 +133,58 @@ class Partition(Base):
 class Overlap(Base):
     def execute(self, cqs):
         type_parts = {}       # each type-based partition
-        intervals = {}        # ColumnIntervals for each colnum
-        attrs_added = {}      # attributes already added for each colnum
-        attrs_to_cqs = {}     # stores attrs -> [(cqid, frag)] for each colnum
 
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
 
         print("Partitioning CQs by type...")
         start = time.time()
-        for cqid, cq in cqs_parsed.items():
-            proj_types = ()
-            for colnum, proj in enumerate(cq.projs):
-                attr = self.db.get_attr(proj)
-                if isinstance(proj, dict):
-                    attr_type = 'aggr'
-                    continue
-                else:
-                    attr_type = attr.type
-                proj_types = proj_types + (attr_type,)
-
-                if colnum not in attrs_added:
-                    attrs_added[colnum] = set()
-                if colnum not in attrs_to_cqs:
-                    attrs_to_cqs[colnum] = {}
-                if attr not in attrs_to_cqs[colnum]:
-                    attrs_to_cqs[colnum][attr] = []
-                attrs_to_cqs[colnum][attr].append((cqid, proj))
-
-                if attr.type == 'num':
-                    if attr in attrs_added[colnum]:
-                        continue
-
-                    if colnum not in intervals:
-                        intervals[colnum] = ColumnIntervals(colnum)
-
-                    intervals[colnum].add_attr(attr)
-                    attrs_added[colnum].add(attr)
-
-            if proj_types not in type_parts:
-                type_parts[proj_types] = {}
-            type_parts[proj_types][cqid] = cq
-
-        for colnum, ci in intervals.items():
-            ci.update()
-
-        # Assume the largest type is most likely to produce your result.
-        sorted_type_parts = OrderedDict(sorted(type_parts.items(), key=lambda t: len(t[1]), reverse=True))
-        type, type_cqs = sorted_type_parts.items()[0]
-
+        part_set = PartitionSet(self.db, cqs_parsed)
         partition_time = time.time() - start
         print("Done partitioning [{}s]".format(partition_time))
 
+        print("Find overlaps...")
+        start = time.time()
+        part_set.find_overlaps(self.tidb)
+        overlap_time = time.time() - start
+        print("Done finding overlaps [{}s]".format(overlap_time))
+
         total_interval_time = 0
         total_query_time = 0
-        total_dist_time = 0
 
-        max_intrvls = ColumnIntervals.max_interval_count(intervals.values())
-        for n in range(1, max_intrvls):
-            print('Rewriting queries for top-{} intervals...'.format(n))
-            start = time.time()
-            narrowed_cqs = dict(type_cqs)
-            after_partition_cqs = {}
-            for colnum, coltype in enumerate(type):
-                if coltype == 'text':
-                    # TODO: handle text intersect
-                    pass
-                if coltype == 'num':
-                    top_n = intervals[colnum].top_n(n)
+        for type, part in part_set:
+            print('Executing partition {}...'.format(type))
+            for n in range(1, part.max_overlap_count()):
+                print('Rewriting queries for top-{} overlaps...'.format(n))
+                start = time.time()
+                cur_cqs = dict(part.cqs)
+                for colnum, coltype in enumerate(type):
+                    top_n = part.top_n_col_overlaps(n, colnum)
+                    cur_cqs = Query.narrow_all(self.db, part_set, colnum, top_n, cur_cqs)
+                interval_time = time.time() - start
+                print('Done rewriting queries [{}s]'.format(interval_time))
 
-                    for attr in ColumnIntervals.get_all_attrs(top_n):
-                        cq_infos = attrs_to_cqs[colnum][attr]
-                        for cqid, proj in cq_infos:
-                            if cqid in narrowed_cqs:
-                                orig = narrowed_cqs[cqid]
-                                new_query = Query.limit_by_interval(self.db, orig, proj, top_n)
+                total_interval_time += interval_time
 
-                                after_partition_cqs[cqid] = new_query
+                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
+                self.print_stats(len(cur_cqs), timed_out, sql_errors, len(valid_cqs))
+                total_query_time += query_time
 
-                    narrowed_cqs = after_partition_cqs
-            interval_time = time.time() - start
-            print('Done rewriting queries [{}s]'.format(interval_time))
-
-            total_interval_time += interval_time
-
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(narrowed_cqs, msg_append=' ' + str(type))
-            self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
-            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-            self.print_top_dists(sorted_dists, tuples, 5)
-            print()
-
-            total_query_time += query_time
-            total_dist_time += dist_time
+                if tuples:
+                    break
+                else:
+                    print('No tuples found, expanding overlaps...')
 
             if tuples:
                 break
+            else:
+                print('No tuples found, executing next partition...')
 
-        comp_time = partition_time + total_interval_time + total_dist_time
+        sorted_dists, dist_time = self.calc_dists(cqs, tuples)
+        self.print_top_dists(sorted_dists, tuples, 5)
 
-        return parse_time, query_time, comp_time
+        comp_time = partition_time + overlap_time + total_interval_time + dist_time
+
+        return parse_time, total_query_time, comp_time
 
 class Exhaustive(Base):
     def execute(self, cqs):

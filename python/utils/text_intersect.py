@@ -22,6 +22,7 @@ class TextIntersectDatabase(object):
         tidb = TextIntersectDatabase(db, path)
         tidb.load()
         print('Loaded text intersect database. [{}s]'.format(time.time()-start))
+        return tidb
 
     def save(self):
         pickle.dump(self.tis, open(self.path, 'wb'))
@@ -33,19 +34,15 @@ class TextIntersectDatabase(object):
         self.tis = {}
         return False
 
-    # top_n
-    def top_n(self, attrs, n):
-        return self.get_ranked_intersects(attrs)[0:n]
-
     # returns intersects with attrs by (# attrs, # intersecting vals) desc
     def get_ranked_intersects(self, attrs):
         intersects = []
-        for size in range(2, len(attrs) + 1):
+        for size in range(1, len(attrs) + 1):
             for combo in itertools.combinations(attrs, size):
                 attr_set = AttributeSet(combo)
                 if size in self.tis and attr_set in self.tis[size]:
                     intersects.append(self.tis[size][attr_set])
-        return sorted(intersects, key=lambda x: (len(x.attr_set), len(x.values)), reverse=True)
+        return sorted(intersects, key=lambda x: (len(x.attr_set), len(x)), reverse=True)
 
     # build intersects until max intersect size == len(attrs)
     # only includes non-empty intersects
@@ -54,6 +51,11 @@ class TextIntersectDatabase(object):
         # calculate all pair of intersects from db first
         attrs = self.db.get_text_attrs()
         print('Total text attrs: {}'.format(len(attrs)))
+        self.tis[1] = {}
+
+        for attr in attrs:
+            attr_set = AttributeSet([attr])
+            self.tis[1][attr_set] = TextIntersect( attr_set, None)
 
         print('Building intersects for size 2...')
         self.calc_pair_intersects(attrs)
@@ -141,6 +143,25 @@ class TextIntersect(object):
     def __init__(self, attr_set, values):
         self.attr_set = attr_set
         self.values = values
+
+    def __unicode__(self):
+        value_display_limit = 5
+        if self.values is not None:
+            if len(self.values) < value_display_limit:
+                value_str = u','.join(self.values)
+            else:
+                value_str = u','.join(list(self.values)[0:5]) + u'...'
+            return u'Attrs: {}, Values: {} [{}]'.format(self.attr_set, len(self.values), value_str)
+        else:
+            return u'Attrs: {}'.format(self.attr_set)
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
+    def __len__(self):
+        if self.values is None:
+            return 0
+        return len(self.values)
 
     @staticmethod
     def find_pair_intersects(db, attr_set):

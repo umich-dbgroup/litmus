@@ -25,8 +25,11 @@ class Attribute(object):
         self.min = min
         self.max = max
 
+    def __unicode__(self):
+        return u'{}.{}'.format(self.rel.name, self.name)
+
     def __str__(self):
-        return '{}.{}'.format(self.rel.name, self.name)
+        return unicode(self).encode('utf-8')
 
     def __hash__(self):
         return hash(str(self))
@@ -37,6 +40,12 @@ class Attribute(object):
 class AttributeSet(object):
     def __init__(self, attrs):
         self.attrs = sorted(attrs, key=lambda a: str(a))
+
+    def __unicode__(self):
+        return u'[{}]'.format(','.join([unicode(a) for a in self.attrs]))
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
 
     def __iter__(self):
         return iter(self.attrs)
