@@ -96,7 +96,6 @@ class Query(object):
             # no need to narrow if only one attribute
             return queries
         for attr in attrs:
-            print('Attr COUNT: {}'.format(len(attrs)))
             cq_infos = part_set.attrs_to_cqs[colnum][attr]
             for cqid, proj in cq_infos:
                 if cqid in cur_queries:
