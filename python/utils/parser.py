@@ -92,9 +92,6 @@ class Query(object):
         attrs =  ProjPartition.attrs_from_overlaps(top_n_overlaps)
         if not attrs:
             raise Exception('Error! No attrs found in column {}'.format(colnum))
-        if len(attrs) == 1:
-            # no need to narrow if only one attribute
-            return queries
         for attr in attrs:
             cq_infos = part_set.attrs_to_cqs[colnum][attr]
             for cqid, proj in cq_infos:
@@ -124,7 +121,8 @@ class Query(object):
             if isinstance(ov, NumInterval):
                 limited_strs.append(u'({} >= {} AND {} <= {})'.format(proj, ov.min, proj, ov.max))
             elif isinstance(ov, TextIntersect):
-                limited_strs.append(u"{} IN ('{}')".format(proj, u"','".join(ov.values)))
+                if ov.values is not None:
+                    limited_strs.append(u"{} IN ('{}')".format(proj, u"','".join([v.replace("'", "''") for v in ov.values])))
 
         limited_str = u" OR ".join(limited_strs)
         new_query_str = u'{} AND ({})'.format(query.query_str, limited_str)

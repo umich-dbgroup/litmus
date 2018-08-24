@@ -2,6 +2,7 @@ from __future__ import division, print_function
 
 import sys
 import time
+import traceback
 
 from collections import OrderedDict
 from tqdm import tqdm
@@ -64,6 +65,8 @@ class Base(object):
                 if str(e).startswith('Timeout'):
                     timed_out += 1
                 else:
+                    print(query_str)
+                    print(traceback.format_exc())
                     sql_errors += 1
             bar.update(1)
         bar.close()

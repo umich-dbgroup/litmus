@@ -22,7 +22,7 @@ class ColumnTextIntersects(object):
 class ColumnNumIntervals(object):
     def __init__(self, colnum, attrs):
         self.colnum = colnum
-        self.attrs = attrs
+        self.attrs = filter(lambda a: a.min is not None and a.max is not None, attrs)
         self.find_intervals()
 
     def __len__(self):
@@ -39,9 +39,6 @@ class ColumnNumIntervals(object):
 
     def top_n(self, n):
         return self.intervals[0:n]
-
-    def add_attr(self, attr):
-        self.attrs.append(attr)
 
     # Requires all necessary attrs added before execution
     # Inspired by: https://stackoverflow.com/questions/18373509
