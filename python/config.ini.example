@@ -4,6 +4,7 @@ pw =
 host = 127.0.0.1
 port = 3306
 cache_path = cache/database.cache
+timeout = 15000
 
 [parser]
 cache_path = cache/parser.cache

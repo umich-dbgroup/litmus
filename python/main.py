@@ -51,14 +51,13 @@ def main():
     argparser.add_argument('mode', choices=['stats', 'exhaustive', 'partition', 'overlap'])
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--data_dir', default='../data')
-    argparser.add_argument('--timeout', type=int, default=15000)
     argparser.add_argument('--email')
     args = argparser.parse_args()
 
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
-    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_path'), timeout=args.timeout)
+    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_path'), timeout=config.get('database', 'timeout'))
     parser = SQLParser(config.get('parser', 'cache_path'))
 
     # only load tidb if mode is overlap
