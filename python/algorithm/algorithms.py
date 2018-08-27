@@ -172,6 +172,9 @@ class Overlap(Base):
                 self.print_stats(len(cur_cqs), timed_out, sql_errors, len(valid_cqs))
                 total_query_time += query_time
 
+                if timed_out == len(cur_cqs):
+                    print('All queries timed out...')
+                    break
                 if tuples:
                     break
                 else:
