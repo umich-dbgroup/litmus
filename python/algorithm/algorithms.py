@@ -65,7 +65,7 @@ class Base(object):
                 if str(e).startswith('Timeout'):
                     timed_out += 1
                 else:
-                    print(query_str)
+                    print(query_str.encode('utf-8'))
                     print(traceback.format_exc())
                     sql_errors += 1
             bar.update(1)
