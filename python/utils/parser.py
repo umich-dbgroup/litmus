@@ -124,7 +124,10 @@ class Query(object):
                 if ov.values is not None:
                     limited_strs.append(u"{} IN ('{}')".format(proj, u"','".join([v.replace("'", "''") for v in ov.values])))
 
-        limited_str = u" OR ".join(limited_strs)
-        new_query_str = u'{} AND ({})'.format(query.query_str, limited_str)
+        if limited_strs:
+            limited_str = u" OR ".join(limited_strs)
+            new_query_str = u'{} AND ({})'.format(query.query_str, limited_str)
+        else:
+            new_query_str = query.query_str
 
         return Query(new_query_str, query.projs, query.preds)

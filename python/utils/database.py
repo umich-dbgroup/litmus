@@ -161,7 +161,7 @@ class Database(object):
     # given a fragment from a SQL statement (e.g. 'actor_0.name')
     # get the attribute
     def get_attr(self, frag):
-        if '.' not in frag:
+        if not (isinstance(frag, str) or isinstance(frag, unicode)) or '.' not in frag:
             return None
 
         rel_alias, attr_name = frag.split('.')
