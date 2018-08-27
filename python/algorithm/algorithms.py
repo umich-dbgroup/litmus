@@ -154,6 +154,8 @@ class Overlap(Base):
         total_interval_time = 0
         total_query_time = 0
 
+        tuples = None
+
         for type, part in part_set:
             print('Executing partition {}...'.format(type))
             for n in range(1, part.max_overlap_count()):
@@ -185,8 +187,10 @@ class Overlap(Base):
             else:
                 print('No tuples found, executing next partition...')
 
-        sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-        self.print_top_dists(sorted_dists, tuples, 5)
+        dist_time = 0
+        if tuples:
+            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
+            self.print_top_dists(sorted_dists, tuples, 5)
 
         comp_time = partition_time + overlap_time + total_interval_time + dist_time
 
