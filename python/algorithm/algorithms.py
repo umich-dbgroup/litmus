@@ -34,7 +34,19 @@ class Base(object):
             for tuple, count in sorted_tuples.items()[0:k]:
                 print(count, end='; ')
             print()
-        return 0, query_time, 0
+
+        result = {
+            'dist': 0,
+            'total_cq': len(cqs),
+            'exec_cq': len(cqs),
+            'valid_cq': len(valid_cqs),
+            'timeout_cq': timed_out,
+            'error_cq': sql_errors,
+            'parse_time': 0,
+            'query_time': query_time,
+            'comp_time': 0
+        }
+        return result
 
     def run_cqs(self, cqs, msg_append=''):
         valid_cqs = []
@@ -116,9 +128,20 @@ class Partition(Base):
         partition_time = time.time() - start
         print("Done partitioning [{}s]".format(partition_time))
 
+        total_exec_cqs = 0
+        total_valid_cqs = 0
+        total_timeout_cqs = 0
+        total_error_cqs = 0
+        total_query_time = 0
         for type, part in part_set:
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(type))
             self.print_stats(len(part.cqs), timed_out, sql_errors, len(valid_cqs))
+
+            total_exec_cqs += len(part.cqs)
+            total_valid_cqs += len(valid_cqs)
+            total_timeout_cqs += timed_out
+            total_error_cqs += sql_errors
+            total_query_time += query_time
 
             if not tuples:
                 print('No tuples found, executing next partition...')
@@ -126,12 +149,26 @@ class Partition(Base):
             else:
                 break
 
-        sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-        self.print_top_dists(sorted_dists, tuples, 5)
+        max_dist = 0
+        if tuples:
+            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
+            self.print_top_dists(sorted_dists, tuples, 5)
+            max_dist = sorted_dists.items()[0][1]
 
         comp_time = partition_time + dist_time
 
-        return parse_time, query_time, comp_time
+        result = {
+            'dist': max_dist,
+            'total_cq': len(cqs),
+            'exec_cq': total_exec_cqs,
+            'valid_cq': total_valid_cqs,
+            'timeout_cq': total_timeout_cqs,
+            'error_cq': total_error_cqs,
+            'parse_time': parse_time,
+            'query_time': total_query_time,
+            'comp_time': comp_time
+        }
+        return result
 
 class Overlap(Base):
     def execute(self, cqs):
@@ -155,6 +192,10 @@ class Overlap(Base):
         total_query_time = 0
 
         tuples = None
+        total_exec_cqs = 0
+        total_timeout_cqs = 0
+        total_error_cqs = 0
+        total_valid_cqs = 0
 
         for type, part in part_set:
             print('Executing partition {}...'.format(type))
@@ -172,6 +213,11 @@ class Overlap(Base):
 
                 tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
                 self.print_stats(len(cur_cqs), timed_out, sql_errors, len(valid_cqs))
+
+                total_exec_cqs += len(cur_cqs)
+                total_timeout_cqs += timed_out
+                total_error_cqs += sql_errors
+                total_valid_cqs += len(valid_cqs)
                 total_query_time += query_time
 
                 if timed_out == len(cur_cqs):
@@ -188,19 +234,47 @@ class Overlap(Base):
                 print('No tuples found, executing next partition...')
 
         dist_time = 0
+        max_dist = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs, tuples)
             self.print_top_dists(sorted_dists, tuples, 5)
+            max_dist = sorted_dists.items()[0][1]
 
         comp_time = partition_time + overlap_time + total_interval_time + dist_time
 
-        return parse_time, total_query_time, comp_time
+        result = {
+            'dist': max_dist,
+            'total_cq': len(cqs),
+            'exec_cq': total_exec_cqs,
+            'valid_cq': total_valid_cqs,
+            'timeout_cq': total_timeout_cqs,
+            'error_cq': total_error_cqs,
+            'parse_time': parse_time,
+            'query_time': total_query_time,
+            'comp_time': comp_time
+        }
+        return result
 
 class Exhaustive(Base):
     def execute(self, cqs):
         tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
-        sorted_dists, dist_time = self.calc_dists(cqs, tuples)
         self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
-        self.print_top_dists(sorted_dists, tuples, 5)
 
-        return 0, query_time, dist_time
+        max_dist = 0
+        if tuples:
+            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
+            self.print_top_dists(sorted_dists, tuples, 5)
+            max_dist = sorted_dists.items()[0][1]
+
+        result = {
+            'dist': max_dist,
+            'total_cq': len(cqs),
+            'exec_cq': len(cqs),
+            'valid_cq': len(valid_cqs),
+            'timeout_cq': timed_out,
+            'error_cq': sql_errors,
+            'parse_time': 0,
+            'query_time': query_time,
+            'comp_time': dist_time
+        }
+        return result

@@ -1,3 +1,7 @@
+[main]
+cache_dir = cache/
+results_dir = ../results/
+
 [database]
 user = root
 pw =
