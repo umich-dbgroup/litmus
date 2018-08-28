@@ -200,17 +200,17 @@ class Overlap(Base):
         for type, part in part_set:
             print('Executing partition {}...'.format(type))
 
-            timed_out = []
-            sql_errors = []
+            all_timed_out = []
+            all_sql_errors = []
             for n in range(1, min(5, part.max_overlap_count())):
                 print('Rewriting queries for top-{} overlaps...'.format(n))
                 start = time.time()
                 cur_cqs = dict(part.cqs)
 
-                for cqid in timed_out:
+                for cqid in all_timed_out:
                     cur_cqs.pop(cqid, None)
 
-                for cqid in sql_errors:
+                for cqid in all_sql_errors:
                     cur_cqs.pop(cqid, None)
 
                 if not cur_cqs:
@@ -227,6 +227,9 @@ class Overlap(Base):
 
                 tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
                 self.print_stats(len(cur_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
+
+                all_timed_out.extend(timed_out)
+                all_sql_errors.extend(sql_errors)
 
                 total_exec_cqs += len(cur_cqs)
                 total_timeout_cqs += len(timed_out)
