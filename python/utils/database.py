@@ -148,11 +148,11 @@ class Database(object):
 
     def set_packet_size(self):
         cursor = self.cursor()
-        cursor.execute('SET SESSION NET_BUFFER_LENGTH={}'.format(1000000))
+        cursor.execute('SET GLOBAL NET_BUFFER_LENGTH={}'.format(1000000))
         cursor.close()
 
         cursor = self.cursor()
-        cursor.execute('SET SESSION MAX_ALLOWED_PACKET={}'.format(1000000000))
+        cursor.execute('SET GLOBAL MAX_ALLOWED_PACKET={}'.format(1000000000))
         cursor.close()
 
     def set_timeout(self, timeout):
