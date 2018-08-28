@@ -202,7 +202,7 @@ class Overlap(Base):
 
             all_timed_out = []
             all_sql_errors = []
-            for n in range(1, min(3, part.max_overlap_count())):
+            for n in range(1, min(4, part.max_overlap_count())):
                 print('Rewriting queries for top-{} overlaps...'.format(n))
                 start = time.time()
                 cur_cqs = dict(part.cqs)
