@@ -43,6 +43,11 @@ class ColumnNumIntervals(object):
     # Requires all necessary attrs added before execution
     # Inspired by: https://stackoverflow.com/questions/18373509
     def find_intervals(self):
+        # case that there's no attrs (e.g. empty attrs)
+        if not self.attrs:
+            self.intervals = []
+            return self.intervals
+
         transitions = []
         for attr in self.attrs:
             transitions.append((attr.min, 1, attr))
