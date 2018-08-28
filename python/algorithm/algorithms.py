@@ -25,7 +25,7 @@ class Base(object):
 
         sorted_tuples = OrderedDict(sorted(tuples.items(), key=lambda t: len(t[1]), reverse=True))
 
-        self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
+        self.print_stats(len(cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
         if valid_cqs > 0:
             print('Avg. tuples per CQ: {}'.format(len(tuples)/len(valid_cqs)))
@@ -135,7 +135,7 @@ class Partition(Base):
         total_query_time = 0
         for type, part in part_set:
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(type))
-            self.print_stats(len(part.cqs), timed_out, sql_errors, len(valid_cqs))
+            self.print_stats(len(part.cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
             total_exec_cqs += len(part.cqs)
             total_valid_cqs += len(valid_cqs)
@@ -226,7 +226,7 @@ class Overlap(Base):
                 total_interval_time += interval_time
 
                 tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
-                self.print_stats(len(cur_cqs), timed_out, sql_errors, len(valid_cqs))
+                self.print_stats(len(cur_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
                 total_exec_cqs += len(cur_cqs)
                 total_timeout_cqs += len(timed_out)
@@ -269,7 +269,7 @@ class Overlap(Base):
 class Exhaustive(Base):
     def execute(self, cqs):
         tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
-        self.print_stats(len(cqs), timed_out, sql_errors, len(valid_cqs))
+        self.print_stats(len(cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
         max_dist = 0
         if tuples:
