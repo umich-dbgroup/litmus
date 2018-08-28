@@ -89,6 +89,7 @@ class Database(object):
         loaded_from_cache = self.load_relations()
         if timeout is not None:
             self.set_timeout(timeout)
+        self.set_packet_size()
         print("Loaded from cache: {}".format(loaded_from_cache))
         print("Done loading database [{}s]".format(time.time()-start))
 
@@ -144,6 +145,15 @@ class Database(object):
 
     def cursor(self):
         return self.conn.cursor()
+
+    def set_packet_size(self):
+        cursor = self.cursor()
+        cursor.execute('SET SESSION NET_BUFFER_LENGTH={}'.format(1000000))
+        cursor.close()
+
+        cursor = self.cursor()
+        cursor.execute('SET SESSION MAX_ALLOWED_PACKET={}'.format(1000000000))
+        cursor.close()
 
     def set_timeout(self, timeout):
         cursor = self.cursor()
