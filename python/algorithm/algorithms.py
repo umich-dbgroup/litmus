@@ -40,8 +40,8 @@ class Base(object):
             'total_cq': len(cqs),
             'exec_cq': len(cqs),
             'valid_cq': len(valid_cqs),
-            'timeout_cq': timed_out,
-            'error_cq': sql_errors,
+            'timeout_cq': len(timed_out),
+            'error_cq': len(sql_errors),
             'parse_time': 0,
             'query_time': query_time,
             'comp_time': 0
@@ -50,8 +50,8 @@ class Base(object):
 
     def run_cqs(self, cqs, msg_append=''):
         valid_cqs = []
-        timed_out = 0
-        sql_errors = 0
+        timed_out = []
+        sql_errors = []
         tuples = {}
 
         bar = tqdm(total=len(cqs), desc='Running CQs{}'.format(msg_append))
@@ -75,11 +75,11 @@ class Base(object):
                         tuples[t].append(cqid)
             except Exception as e:
                 if str(e).startswith('Timeout'):
-                    timed_out += 1
+                    timed_out.append(cqid)
                 else:
                     print(query_str.encode('utf-8')[:1000])
                     print(traceback.format_exc())
-                    sql_errors += 1
+                    sql_errors.append(cqid)
             bar.update(1)
         bar.close()
         query_time = time.time() - start
@@ -139,8 +139,8 @@ class Partition(Base):
 
             total_exec_cqs += len(part.cqs)
             total_valid_cqs += len(valid_cqs)
-            total_timeout_cqs += timed_out
-            total_error_cqs += sql_errors
+            total_timeout_cqs += len(timed_out)
+            total_error_cqs += len(sql_errors)
             total_query_time += query_time
 
             if not tuples:
@@ -199,10 +199,24 @@ class Overlap(Base):
 
         for type, part in part_set:
             print('Executing partition {}...'.format(type))
-            for n in range(1, part.max_overlap_count()):
+
+            timed_out = []
+            sql_errors = []
+            for n in range(1, min(5, part.max_overlap_count())):
                 print('Rewriting queries for top-{} overlaps...'.format(n))
                 start = time.time()
                 cur_cqs = dict(part.cqs)
+
+                for cqid in timed_out:
+                    cur_cqs.pop(cqid, None)
+
+                for cqid in sql_errors:
+                    cur_cqs.pop(cqid, None)
+
+                if not cur_cqs:
+                    print('No CQs to execute...')
+                    break
+
                 for colnum, coltype in enumerate(type):
                     top_n = part.top_n_col_overlaps(n, colnum)
                     cur_cqs = Query.narrow_all(self.db, part_set, colnum, top_n, cur_cqs)
@@ -215,14 +229,11 @@ class Overlap(Base):
                 self.print_stats(len(cur_cqs), timed_out, sql_errors, len(valid_cqs))
 
                 total_exec_cqs += len(cur_cqs)
-                total_timeout_cqs += timed_out
-                total_error_cqs += sql_errors
+                total_timeout_cqs += len(timed_out)
+                total_error_cqs += len(sql_errors)
                 total_valid_cqs += len(valid_cqs)
                 total_query_time += query_time
 
-                if timed_out == len(cur_cqs):
-                    print('All queries timed out...')
-                    break
                 if tuples:
                     break
                 else:
@@ -271,8 +282,8 @@ class Exhaustive(Base):
             'total_cq': len(cqs),
             'exec_cq': len(cqs),
             'valid_cq': len(valid_cqs),
-            'timeout_cq': timed_out,
-            'error_cq': sql_errors,
+            'timeout_cq': len(timed_out),
+            'error_cq': len(sql_errors),
             'parse_time': 0,
             'query_time': query_time,
             'comp_time': dist_time
