@@ -219,7 +219,8 @@ class Overlap(Base):
 
                 for colnum, coltype in enumerate(type):
                     top_n = part.top_n_col_overlaps(n, colnum)
-                    cur_cqs = Query.narrow_all(self.db, part_set, colnum, top_n, cur_cqs)
+                    if top_n is not None:
+                        cur_cqs = Query.narrow_all(self.db, part_set, colnum, top_n, cur_cqs)
                 interval_time = time.time() - start
                 print('Done rewriting queries [{}s]'.format(interval_time))
 

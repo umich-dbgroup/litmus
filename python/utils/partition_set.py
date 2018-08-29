@@ -16,7 +16,10 @@ class ProjPartition(object):
         self.cqs[cqid] = cq
 
     def top_n_col_overlaps(self, n, colnum):
-        return self.overlaps[colnum].top_n(n)
+        if colnum in self.overlaps:
+            return self.overlaps[colnum].top_n(n)
+        else:
+            return None
 
     @staticmethod
     def attrs_from_overlaps(top_n):
@@ -50,15 +53,17 @@ class PartitionSet(object):
         for cqid, cq in cqs.items():
             proj_types = ()
             for colnum, proj in enumerate(cq.projs):
-                attr = db.get_attr(proj)
-
                 if colnum not in self.attrs_to_cqs:
                     self.attrs_to_cqs[colnum] = {}
+
+                attr = db.get_attr(proj)
 
                 if isinstance(proj, dict):
                     attr_type = 'aggr'
                 else:
                     attr_type = attr.type
+                    if colnum not in self.attrs_to_cqs:
+                        self.attrs_to_cqs[colnum] = {}
                     if attr not in self.attrs_to_cqs[colnum]:
                         self.attrs_to_cqs[colnum][attr] = []
                     self.attrs_to_cqs[colnum][attr].append((cqid, proj))
