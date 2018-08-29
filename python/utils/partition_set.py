@@ -51,6 +51,9 @@ class PartitionSet(object):
             proj_types = ()
             for colnum, proj in enumerate(cq.projs):
                 attr = db.get_attr(proj)
+                if attr is None:
+                    print('Projection: {} is none!'.format(proj))
+
                 if isinstance(proj, dict):
                     attr_type = 'aggr'
                 else:
