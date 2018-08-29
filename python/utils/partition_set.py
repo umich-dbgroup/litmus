@@ -51,20 +51,18 @@ class PartitionSet(object):
             proj_types = ()
             for colnum, proj in enumerate(cq.projs):
                 attr = db.get_attr(proj)
-                if attr is None:
-                    print('Projection: {} is none!'.format(proj))
-
+                
                 if isinstance(proj, dict):
                     attr_type = 'aggr'
                 else:
                     attr_type = attr.type
-                proj_types = proj_types + (attr_type,)
+                    if colnum not in self.attrs_to_cqs:
+                        self.attrs_to_cqs[colnum] = {}
+                    if attr not in self.attrs_to_cqs[colnum]:
+                        self.attrs_to_cqs[colnum][attr] = []
+                    self.attrs_to_cqs[colnum][attr].append((cqid, proj))
 
-                if colnum not in self.attrs_to_cqs:
-                    self.attrs_to_cqs[colnum] = {}
-                if attr not in self.attrs_to_cqs[colnum]:
-                    self.attrs_to_cqs[colnum][attr] = []
-                self.attrs_to_cqs[colnum][attr].append((cqid, proj))
+                proj_types = proj_types + (attr_type,)
 
             if proj_types not in self.partitions:
                 self.partitions[proj_types] = ProjPartition(proj_types, {})
