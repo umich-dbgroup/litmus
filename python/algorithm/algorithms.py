@@ -150,6 +150,7 @@ class Partition(Base):
                 break
 
         max_dist = 0
+        dist_time = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs, tuples)
             self.print_top_dists(sorted_dists, tuples, 5)
