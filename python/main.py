@@ -10,7 +10,7 @@ import traceback
 
 from beautifultable import BeautifulTable
 
-from algorithm.algorithms import Base, Partition, Overlap, Exhaustive
+from algorithm.algorithms import Base, Partition, Overlap, Exhaustive, Random
 from utils.database import Database
 from utils.mailer import Mailer
 from utils.parser import SQLParser
@@ -39,7 +39,9 @@ def execute_mode(mode, db, tidb, parser, qid, cqs):
 
     algorithm = None
 
-    if mode == 'exhaustive':
+    if mode == 'random':
+        algorithm = Random(db, parser)
+    elif mode == 'exhaustive':
         algorithm = Exhaustive(db, parser)
     elif mode == 'partition':
         algorithm = Partition(db, parser)
@@ -73,7 +75,7 @@ def save_results(results, path):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['exhaustive', 'partition', 'overlap'])
+    argparser.add_argument('mode', choices=['random', 'exhaustive', 'partition', 'overlap'])
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--data_dir', default='../data')
     argparser.add_argument('--email')

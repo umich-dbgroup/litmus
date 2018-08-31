@@ -1,5 +1,6 @@
 from __future__ import division, print_function
 
+import random
 import sys
 import time
 import traceback
@@ -96,17 +97,20 @@ class Base(object):
         print("Done calculating dists [{}s]".format(dist_time))
         return sorted_tuple_dists, dist_time
 
-    def max_dist_tuples(self, cqs, tuples, sorted_dists, timed_out, k):
+    def max_dist_tuples(self, cqs, tuples, sorted_dists, check_queries, k):
+        print('Evaluating distinguishability, including unexecuted queries (exec time not counted for runtime)...')
+        start = time.time()
         for t, dist in sorted_dists.items()[0:k]:
             cqids = tuples[t]
 
-            # check if t exists in any of the timed out queries
-            for timeout_cqid in timed_out:
-                if Query.tuple_in_query(self.db, t, cqs[timeout_cqid]):
-                    cqids.append(timeout_cqid)
+            # check if t exists in any queries not yet executed/timed out
+            for check_cqid in check_queries:
+                if Query.tuple_in_query(self.db, t, cqs[check_cqid]):
+                    cqids.append(check_cqid)
 
             # recalculate dist for this
             sorted_dists[t] = self.dist(cqs, t, cqids)
+        print('Done evaluating distinguishability. [{}s]'.format(time.time() - start))
         return sorted_dists
 
     def print_stats(self, cq_count, timeout_count, sql_errors, valid_count):
@@ -294,6 +298,74 @@ class Exhaustive(Base):
             'dist': max_dist,
             'total_cq': len(cqs),
             'exec_cq': len(cqs),
+            'valid_cq': len(valid_cqs),
+            'timeout_cq': len(timed_out),
+            'error_cq': len(sql_errors),
+            'parse_time': parse_time,
+            'query_time': query_time,
+            'comp_time': dist_time
+        }
+        return result
+
+class Random(Base):
+    def execute(self, cqs):
+        cqs_parsed, parse_time = self.parser.parse_many(cqs)
+
+        exec_cqs = []
+        valid_cqs = []
+        timed_out = []
+        sql_errors = []
+
+        print("Executing random CQs until 1 random tuple found...")
+        r_keys = list(cqs_parsed.keys())
+        random.shuffle(r_keys)
+
+        result = None
+        start = time.time()
+        while r_keys:
+            cqid = r_keys.pop()
+            cq = cqs_parsed[cqid]
+            try:
+                exec_cqs.append(cqid)
+                print(cq.query_str)
+                cq_tuples = self.db.execute(cq.query_str)
+
+                if len(cq_tuples) > 0:
+                    valid_cqs.append(cqid)
+                    result = random.choice(list(cq_tuples))
+                    break
+            except Exception as e:
+                if str(e).startswith('Timeout'):
+                    timed_out.append(cqid)
+                else:
+                    print(cq.query_str.encode('utf-8')[:1000])
+                    print(traceback.format_exc())
+                    sql_errors.append(cqid)
+
+        query_time = time.time() - start
+        print("Done executing CQs [{}s]".format(query_time))
+
+        self.print_stats(len(exec_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
+
+        max_dist = 0
+        dist_time = 0
+        if result:
+            tuples = {}
+            tuples[result] = list(valid_cqs)
+            sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
+
+            # need to check not-yet-executed queries and any timed-out queries
+            check_queries = list(r_keys)
+            check_queries.extend(timed_out)
+
+            sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, check_queries, TOP_DISTS)
+            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
+            max_dist = sorted_dists.items()[0][1]
+
+        result = {
+            'dist': max_dist,
+            'total_cq': len(cqs),
+            'exec_cq': len(exec_cqs),
             'valid_cq': len(valid_cqs),
             'timeout_cq': len(timed_out),
             'error_cq': len(sql_errors),
