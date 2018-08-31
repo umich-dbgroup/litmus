@@ -39,10 +39,8 @@ def execute_mode(mode, db, tidb, parser, qid, cqs):
 
     algorithm = None
 
-    if mode == 'stats':
-        algorithm = Base(db)
-    elif mode == 'exhaustive':
-        algorithm = Exhaustive(db)
+    if mode == 'exhaustive':
+        algorithm = Exhaustive(db, parser)
     elif mode == 'partition':
         algorithm = Partition(db, parser)
     elif mode == 'overlap':
@@ -75,7 +73,7 @@ def save_results(results, path):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['stats', 'exhaustive', 'partition', 'overlap'])
+    argparser.add_argument('mode', choices=['exhaustive', 'partition', 'overlap'])
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--data_dir', default='../data')
     argparser.add_argument('--email')
