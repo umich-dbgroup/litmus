@@ -8,7 +8,7 @@ import pickle
 
 from beautifultable import BeautifulTable
 
-from find_spj import find_excludes
+from utils.find_spj import find_excludes
 
 def main():
     parser = argparse.ArgumentParser()
