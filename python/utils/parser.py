@@ -95,6 +95,8 @@ class Query(object):
 
         if 'where' not in query_str.lower():
             query_str += u' WHERE '
+        else:
+            query_str += u' AND '
 
         # stores rel_alias_name -> attr_name for projs.
         # if multiple attrs for single rel, keeps the last one
