@@ -121,6 +121,7 @@ class Query(object):
         query_str += ' LIMIT 1'
 
         cursor = db.cursor()
+        print(query_str)
         cursor.execute(query_str)
         result = cursor.fetchone() is not None
         cursor.close()
