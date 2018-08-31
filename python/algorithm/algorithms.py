@@ -14,6 +14,8 @@ from utils.partition_set import PartitionSet
 
 __all__ = ['Base', 'Partition', 'Overlap', 'Exhaustive']
 
+TOP_DISTS = 5
+
 class Base(object):
     def __init__(self, db, parser=None, tidb=None):
         self.db = db
@@ -21,29 +23,15 @@ class Base(object):
         self.tidb = tidb
 
     def execute(self, cqs):
-        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
-
-        sorted_tuples = OrderedDict(sorted(tuples.items(), key=lambda t: len(t[1]), reverse=True))
-
-        self.print_stats(len(cqs), len(timed_out), len(sql_errors), len(valid_cqs))
-
-        if valid_cqs > 0:
-            print('Avg. tuples per CQ: {}'.format(len(tuples)/len(valid_cqs)))
-            k = 5
-            print('Tuples with most CQ overlap: ', end='')
-            for tuple, count in sorted_tuples.items()[0:k]:
-                print(count, end='; ')
-            print()
-
         result = {
             'dist': 0,
             'total_cq': len(cqs),
-            'exec_cq': len(cqs),
-            'valid_cq': len(valid_cqs),
-            'timeout_cq': len(timed_out),
-            'error_cq': len(sql_errors),
+            'exec_cq': 0,
+            'valid_cq': 0,
+            'timeout_cq': 0,
+            'error_cq': 0,
             'parse_time': 0,
-            'query_time': query_time,
+            'query_time': 0,
             'comp_time': 0
         }
         return result
@@ -98,6 +86,7 @@ class Base(object):
     def calc_dists(self, cqs, tuples):
         print("Calculating dist values...")
         start = time.time()
+
         tuple_dists = {}
         for t, cqids in tuples.items():
             tuple_dists[t] = self.dist(cqs, t, cqids)
@@ -106,6 +95,19 @@ class Base(object):
         dist_time = time.time() - start
         print("Done calculating dists [{}s]".format(dist_time))
         return sorted_tuple_dists, dist_time
+
+    def max_dist_tuples(self, cqs, tuples, sorted_dists, timed_out, k):
+        for t, dist in sorted_dists.items()[0:k]:
+            cqids = tuples[t]
+
+            # check if t exists in any of the timed out queries
+            for timeout_cqid in timed_out:
+                if Query.tuple_in_query(self.db, t, cqs[timeout_cqid]):
+                    cqids.append(timeout_cqid)
+
+            # recalculate dist for this
+            sorted_dists[t] = self.dist(cqs, t, cqids)
+        return sorted_dists
 
     def print_stats(self, cq_count, timeout_count, sql_errors, valid_count):
         print('Executed CQs: {}'.format(cq_count))
@@ -152,8 +154,9 @@ class Partition(Base):
         max_dist = 0
         dist_time = 0
         if tuples:
-            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-            self.print_top_dists(sorted_dists, tuples, 5)
+            sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
+            sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out, TOP_DISTS)
+            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_dist = sorted_dists.items()[0][1]
 
         comp_time = partition_time + dist_time
@@ -252,8 +255,9 @@ class Overlap(Base):
         dist_time = 0
         max_dist = 0
         if tuples:
-            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-            self.print_top_dists(sorted_dists, tuples, 5)
+            sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
+            sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, all_timed_out, TOP_DISTS)
+            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_dist = sorted_dists.items()[0][1]
 
         comp_time = partition_time + overlap_time + total_interval_time + dist_time
@@ -273,14 +277,17 @@ class Overlap(Base):
 
 class Exhaustive(Base):
     def execute(self, cqs):
-        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
+        cqs_parsed, parse_time = self.parser.parse_many(cqs)
+
+        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs_parsed)
         self.print_stats(len(cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
         max_dist = 0
         dist_time = 0
         if tuples:
-            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
-            self.print_top_dists(sorted_dists, tuples, 5)
+            sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
+            sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out, TOP_DISTS)
+            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_dist = sorted_dists.items()[0][1]
 
         result = {
@@ -290,7 +297,7 @@ class Exhaustive(Base):
             'valid_cq': len(valid_cqs),
             'timeout_cq': len(timed_out),
             'error_cq': len(sql_errors),
-            'parse_time': 0,
+            'parse_time': parse_time,
             'query_time': query_time,
             'comp_time': dist_time
         }

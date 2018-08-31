@@ -2,6 +2,7 @@ __all__ = ['SQLParser']
 
 import os
 import pickle
+import re
 import time
 import traceback
 
@@ -84,6 +85,46 @@ class Query(object):
         self.query_str = query_str
         self.projs = projs
         self.preds = preds
+
+    @staticmethod
+    def tuple_in_query(db, t, query):
+        if len(t) != len(query.projs):
+            return False
+
+        query_str = query.query_str
+
+        if 'where' not in query_str.lower():
+            query_str += u' WHERE '
+
+        # stores rel_alias_name -> attr_name for projs.
+        # if multiple attrs for single rel, keeps the last one
+        proj_alias_to_attr = {}
+        preds = []
+        for i, proj in enumerate(query.projs):
+            if isinstance(t[i], unicode) or isinstance(t[i], str):
+                preds.append(u"{} = '{}'".format(proj, t[i].replace("'", "''")))
+            else:
+                preds.append(u"{} = {}".format(proj, t[i]))
+
+            attr = db.get_attr(proj)
+            if not attr.pk:
+                alias, attr_name = proj.split('.')
+                proj_alias_to_attr[alias] = attr_name
+
+        query_str += u' AND '.join(preds)
+        query_str = re.sub(r'SELECT.*FROM', 'SELECT 1 FROM', query_str)
+
+        for alias, attr_name in proj_alias_to_attr.items():
+            index_regex = 'AS ({})'.format(alias)
+            query_str = re.sub(index_regex, 'AS \g<1> USE INDEX ({})'.format(attr_name), query_str)
+
+        query_str += ' LIMIT 1'
+
+        cursor = db.cursor()
+        cursor.execute(query_str)
+        result = cursor.fetchone() is not None
+        cursor.close()
+        return result
 
     @staticmethod
     def narrow_all(db, part_set, colnum, top_n_overlaps, queries):

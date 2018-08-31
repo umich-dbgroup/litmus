@@ -12,6 +12,7 @@ class Attribute(object):
         self.rel = None
         self.name = name
         self.type = type      # text, num
+        self.pk = False
         self.unique_count = None     # unique vals count
 
         if type == 'num':
@@ -24,6 +25,9 @@ class Attribute(object):
     def set_range(self, min, max):
         self.min = min
         self.max = max
+
+    def set_pk(self, pk):
+        self.pk = pk
 
     def __unicode__(self):
         return u'{}.{}'.format(self.rel.name, self.name)
@@ -126,6 +130,9 @@ class Database(object):
                 attr_name = r[0]
                 attr_type = convert_mysql_type(r[1])
                 attrs[attr_name] = Attribute(attr_name, attr_type)
+
+                if r[3].startswith('PRI'):
+                    attrs[attr_name].set_pk(True)
             cursor.close()
 
             for attr_name, attr in attrs.items():
@@ -188,6 +195,9 @@ class Database(object):
         row = cursor.fetchone()
         cursor.close()
         return row[0], row[1]
+
+    def get_relations(self):
+        return self.relations
 
     def execute(self, query):
         cursor = self.cursor()
