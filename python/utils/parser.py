@@ -114,7 +114,7 @@ class Query(object):
                 proj_alias_to_attr[alias] = attr_name
 
         query_str += u' AND '.join(preds)
-        query_str = re.sub(r'SELECT.*FROM', 'SELECT /*+ MAX_EXECUTION_TIME(100000) */ 1 FROM', query_str)
+        query_str = re.sub(r'SELECT.*FROM', 'SELECT 1 FROM', query_str)
 
         for alias, attr_name in proj_alias_to_attr.items():
             index_regex = 'AS ({})'.format(alias)
@@ -122,11 +122,15 @@ class Query(object):
 
         query_str += ' LIMIT 1'
 
-        cursor = db.cursor()
-        print(query_str)
-        cursor.execute(query_str)
-        result = cursor.fetchone() is not None
-        cursor.close()
+        try:
+            cursor = db.cursor()
+            cursor.execute(query_str)
+            result = cursor.fetchone() is not None
+            cursor.close()
+        except Exception as e:
+            cursor.close()
+            if str(e).startswith('3024'):
+                return False
         return result
 
     @staticmethod
