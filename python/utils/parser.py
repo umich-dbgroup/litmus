@@ -112,7 +112,7 @@ class Query(object):
                 proj_alias_to_attr[alias] = attr_name
 
         query_str += u' AND '.join(preds)
-        query_str = re.sub(r'SELECT.*FROM', 'SELECT 1 FROM', query_str)
+        query_str = re.sub(r'SELECT.*FROM', 'SELECT /*+ MAX_EXECUTION_TIME(100000) */ 1 FROM', query_str)
 
         for alias, attr_name in proj_alias_to_attr.items():
             index_regex = 'AS ({})'.format(alias)
