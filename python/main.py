@@ -12,6 +12,7 @@ from beautifultable import BeautifulTable
 
 from algorithm.algorithms import Base, Partition, Overlap, Exhaustive, Random
 from utils.database import Database
+from utils.find_spj import find_excludes
 from utils.mailer import Mailer
 from utils.parser import SQLParser
 from utils.text_intersect import TextIntersectDatabase
@@ -99,6 +100,9 @@ def main():
     out_path = os.path.join(config.get('main', 'results_dir'), args.db + '_' + args.mode + '.pkl')
     results = load_cache(cache_path)
 
+    # load qids to exclude
+    excludes = find_excludes(args.db)
+
     try:
         if args.qid is not None:
             # if executing single query
@@ -112,6 +116,9 @@ def main():
             # if executing all queries
             sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
             for qid, cqs in sorted_tasks.items():
+                if qid in excludes:
+                    print('QUERY {}: Skipping non-SPJ query.'.format(qid))
+                    continue
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
