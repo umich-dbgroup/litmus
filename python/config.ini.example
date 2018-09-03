@@ -7,7 +7,7 @@ user = root
 pw =
 host = 127.0.0.1
 port = 3306
-cache_path = cache/database.cache
+cache_dir = cache/
 timeout = 15000
 buffer_pool_size = 2147483648
 

@@ -83,12 +83,12 @@ class Database(object):
     # relations to ignore from db
     IGNORE_RELS = ['size', 'history']
 
-    def __init__(self, user, pw, host, db, cache_path, timeout=None, buffer_pool_size=None):
+    def __init__(self, user, pw, host, db, cache_dir, timeout=None, buffer_pool_size=None):
         print("Loading database...")
         start = time.time()
         self.conn = mysql.connector.connect(user=user, password=pw, host=host, database=db)
         self.name = db
-        self.cache_path = cache_path
+        self.cache_path = os.path.join(cache_dir, db + '.cache')
 
         loaded_from_cache = self.load_relations()
         if timeout is not None:
