@@ -9,6 +9,7 @@ host = 127.0.0.1
 port = 3306
 cache_path = cache/database.cache
 timeout = 15000
+buffer_pool_size = 2147483648
 
 [parser]
 cache_path = cache/parser.cache

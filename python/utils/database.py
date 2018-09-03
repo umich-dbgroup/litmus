@@ -83,7 +83,7 @@ class Database(object):
     # relations to ignore from db
     IGNORE_RELS = ['size', 'history']
 
-    def __init__(self, user, pw, host, db, cache_path, timeout=15000):
+    def __init__(self, user, pw, host, db, cache_path, timeout=None, buffer_pool_size=None):
         print("Loading database...")
         start = time.time()
         self.conn = mysql.connector.connect(user=user, password=pw, host=host, database=db)
@@ -93,6 +93,8 @@ class Database(object):
         loaded_from_cache = self.load_relations()
         if timeout is not None:
             self.set_timeout(timeout)
+        if buffer_pool_size is not None:
+            self.set_buffer_pool_size(buffer_pool_size)
         self.set_packet_size()
         print("Loaded from cache: {}".format(loaded_from_cache))
         print("Done loading database [{}s]".format(time.time()-start))
@@ -165,6 +167,11 @@ class Database(object):
     def set_timeout(self, timeout):
         cursor = self.cursor()
         cursor.execute('SET SESSION MAX_EXECUTION_TIME={}'.format(timeout))
+        cursor.close()
+
+    def set_buffer_pool_size(self, size):
+        cursor = self.cursor()
+        cursor.execute('SET GLOBAL innodb_buffer_pool_size={}'.format(size))
         cursor.close()
 
     def get_text_attrs(self):
