@@ -70,7 +70,7 @@ def execute_mode(mode, db, tidb, parser, qid, task):
     iters = 0
     while len(cand_cqs) > len(task['ans']):
         print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(cand_cqs), len(task['ans'])))
-        tuple, tuple_cqids, meta = algorithm.execute(task['cqs'])
+        tuple, tuple_cqids, meta = algorithm.execute(cand_cqs)
         iters += 1
 
         result_metas.append(meta)
