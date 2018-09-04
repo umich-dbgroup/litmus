@@ -24,7 +24,7 @@ class Base(object):
         self.tidb = tidb
 
     def execute(self, cqs):
-        result = {
+        result_meta = {
             'dist': 0,
             'total_cq': len(cqs),
             'exec_cq': 0,
@@ -35,7 +35,7 @@ class Base(object):
             'query_time': 0,
             'comp_time': 0
         }
-        return result
+        return None, None, result_meta
 
     def run_cqs(self, cqs, msg_append=''):
         valid_cqs = []
@@ -156,16 +156,19 @@ class Partition(Base):
                 break
 
         max_dist = 0
+        max_tuple = None
+        max_tuple_cqids = None
         dist_time = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
             sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out, TOP_DISTS)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
-            max_dist = sorted_dists.items()[0][1]
+            max_tuple, max_dist = sorted_dists.items()[0]
+            max_tuple_cqids = tuples[max_tuple]
 
         comp_time = partition_time + dist_time
 
-        result = {
+        result_meta = {
             'dist': max_dist,
             'total_cq': len(cqs),
             'exec_cq': total_exec_cqs,
@@ -176,7 +179,7 @@ class Partition(Base):
             'query_time': total_query_time,
             'comp_time': comp_time
         }
-        return result
+        return max_tuple, max_tuple_cqids, result_meta
 
 class Overlap(Base):
     def execute(self, cqs):
@@ -257,16 +260,18 @@ class Overlap(Base):
                 print('No tuples found, executing next partition...')
 
         dist_time = 0
+        max_tuple = None
         max_dist = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
             sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, all_timed_out, TOP_DISTS)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
-            max_dist = sorted_dists.items()[0][1]
+            max_tuple, max_dist = sorted_dists.items()[0]
+            max_tuple_cqids = tuples[max_tuple]
 
         comp_time = partition_time + overlap_time + total_interval_time + dist_time
 
-        result = {
+        result_meta = {
             'dist': max_dist,
             'total_cq': len(cqs),
             'exec_cq': total_exec_cqs,
@@ -277,7 +282,7 @@ class Overlap(Base):
             'query_time': total_query_time,
             'comp_time': comp_time
         }
-        return result
+        return max_tuple, max_tuple_cqids, result_meta
 
 class Exhaustive(Base):
     def execute(self, cqs):
@@ -286,15 +291,18 @@ class Exhaustive(Base):
         tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs_parsed)
         self.print_stats(len(cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
+        max_tuple = None
+        max_tuple_cqids = None
         max_dist = 0
         dist_time = 0
         if tuples:
-            sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
-            sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out, TOP_DISTS)
+            sorted_dists, dist_time = self.calc_dists(cand_cqs, tuples)
+            sorted_dists = self.max_dist_tuples(cand_cqs, tuples, sorted_dists, timed_out, TOP_DISTS)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
-            max_dist = sorted_dists.items()[0][1]
+            max_tuple, max_dist = sorted_dists.items()[0]
+            max_tuple_cqids = tuples[max_tuple]
 
-        result = {
+        result_meta = {
             'dist': max_dist,
             'total_cq': len(cqs),
             'exec_cq': len(cqs),
@@ -305,7 +313,7 @@ class Exhaustive(Base):
             'query_time': query_time,
             'comp_time': dist_time
         }
-        return result
+        return max_tuple, max_tuple_cqids, result_meta
 
 class Random(Base):
     def execute(self, cqs):
@@ -347,6 +355,8 @@ class Random(Base):
 
         self.print_stats(len(exec_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
+        max_tuple = None
+        max_tuple_cqids = None
         max_dist = 0
         dist_time = 0
         if result:
@@ -360,9 +370,10 @@ class Random(Base):
 
             sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, check_queries, TOP_DISTS)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
-            max_dist = sorted_dists.items()[0][1]
+            max_tuple, max_dist = sorted_dists.items()[0]
+            max_tuple_cqids = tuples[max_tuple]
 
-        result = {
+        result_meta = {
             'dist': max_dist,
             'total_cq': len(cqs),
             'exec_cq': len(exec_cqs),
@@ -373,4 +384,4 @@ class Random(Base):
             'query_time': query_time,
             'comp_time': dist_time
         }
-        return result
+        return max_tuple, max_tuple_cqids, result_meta

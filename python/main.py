@@ -35,7 +35,23 @@ def print_result(qid, result):
     print(':: QUERY {} ::'.format(qid))
     print(table)
 
-def execute_mode(mode, db, tidb, parser, qid, cqs):
+def user_feedback(cand_cqs, tuple_cqids, ans):
+    new_cqs = {}
+
+    if any(a in tuple_cqids for a in ans):
+        # positive feedback on tuple
+        for cqid, cq in cand_cqs.items():
+            if cqid in tuple_cqids:
+                new_cqs[cqid] = cq
+    else:
+        # negative feedback on tuple
+        for cqid, cq in cand_cqs.items():
+            if cqid not in tuple_cqids:
+                new_cqs[cqid] = cq
+
+    return new_cqs
+
+def execute_mode(mode, db, tidb, parser, qid, task):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
@@ -49,18 +65,52 @@ def execute_mode(mode, db, tidb, parser, qid, cqs):
     elif mode == 'overlap':
         algorithm = Overlap(db, parser, tidb)
 
-    return algorithm.execute(cqs)
+    cand_cqs = task['cqs'].copy()
+    result_metas = []
+    iters = 0
+    while len(cand_cqs) > len(task['ans']):
+        print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(cand_cqs), len(task['ans'])))
+        tuple, tuple_cqids, meta = algorithm.execute(task['cqs'])
+        iters += 1
+
+        result_metas.append(meta)
+
+        if not tuple:
+            iters = None
+            break
+
+        cand_cqs = user_feedback(cand_cqs, tuple_cqids, task['ans'])
+
+    if iters is None or len(cand_cqs) == 0:
+        # if couldn't find tuple or no cand cqs left
+        iters = None
+        print('Failed to find intended query(s).')
+    elif len(cand_cqs) == len(task['ans']) and all(k in task['ans'] for k in cand_cqs.keys()):
+        print('Succeeded in finding intended query(s).')
+        print('Total Iterations: {}'.format(iters))
+    else:
+        raise Exception('Failed in finding intended query(s).')
+
+    result = {
+        'iters': iters,
+        'meta': result_metas
+    }
+    return result
 
 def load_tasks(data_dir, db_name):
     with open(os.path.join(data_dir, db_name + '.json')) as f:
         data = json.load(f)
 
     tasks = {}
-    for qid, cqs in data.items():
+    for qid, task in data.items():
         cq_dict = {}
-        for cqid, cq in enumerate(cqs):
-            cq_dict[cqid] = cq
-        tasks[int(qid)] = cq_dict
+        for cqid, cq in task['cqs'].items():
+            cq_dict[int(cqid)] = cq
+
+        tasks[int(qid)] = {
+            'cqs': cq_dict,
+            'ans': [int(a) for a in task['ans']]
+        }
 
     return tasks
 
@@ -111,20 +161,20 @@ def main():
             else:
                 results[args.qid] = execute_mode(args.mode, db, tidb, parser, args.qid, tasks[args.qid])
                 save_results(results, cache_path)
-            print_result(args.qid, results[args.qid])
+            # print_result(args.qid, results[args.qid])
         else:
             # if executing all queries
             sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
-            for qid, cqs in sorted_tasks.items():
+            for qid, task in sorted_tasks.items():
                 if qid in excludes:
                     print('QUERY {}: Skipping non-SPJ query.'.format(qid))
                     continue
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    results[qid] = execute_mode(args.mode, db, tidb, parser, qid, cqs)
+                    results[qid] = execute_mode(args.mode, db, tidb, parser, qid, task)
                     save_results(results, cache_path)
-                print_result(qid, results[qid])
+                # print_result(qid, results[qid])
 
             # save all results when finished
             save_results(results, out_path)
