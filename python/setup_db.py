@@ -38,7 +38,7 @@ def main():
                     cursor.close()
                 except Exception as e:
                     if str(e).startswith('1553'):
-                        print('Did not drop {}.{} because of foreign key.'.format(rel_name, index_name))
+                        print('Did not drop {}.{} because of foreign key.'.format(relname, index_name))
             else:
                 unique_keys.append(column_name)
 
