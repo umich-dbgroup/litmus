@@ -31,10 +31,11 @@ def main():
 
     result_count = 0
     accum_total_cq = 0
-    accum_exec_cq = 0
-    accum_timeout_cq = 0
-    accum_norm_dist = 0
-    accum_parse_time = 0
+    accum_inv_iters = 0
+    # accum_exec_cq = 0
+    # accum_timeout_cq = 0
+    # accum_norm_dist = 0
+    # accum_parse_time = 0
     accum_query_time = 0
     accum_comp_time = 0
     for qid, r in results.items():
@@ -46,13 +47,16 @@ def main():
             continue
 
         result_count += 1
-        accum_total_cq += r['total_cq']
-        accum_exec_cq += r['exec_cq']
-        accum_timeout_cq += r['timeout_cq']
-        accum_norm_dist += r['dist'] / r['total_cq']
-        accum_parse_time += r['parse_time']
-        accum_query_time += r['query_time']
-        accum_comp_time += r['comp_time']
+        accum_total_cq += r['meta'][0]['total_cq']
+        if r['iters']:
+            accum_inv_iters += 1 / r['iters']
+        # accum_exec_cq += r['exec_cq']
+        # accum_timeout_cq += r['timeout_cq']
+        # accum_norm_dist += r['dist'] / r['total_cq']
+        # accum_parse_time += r['parse_time']
+        for meta in r['meta']:
+            accum_query_time += meta['query_time']
+            accum_comp_time += meta['comp_time']
 
     table = BeautifulTable()
     table.column_headers = ['METRIC', 'VALUE']
@@ -62,11 +66,12 @@ def main():
     table.append_row(['Total Results', '{}'.format(len(results))])
     table.append_row(['Analyzed Results', '{}'.format(result_count)])
     table.append_row(['Avg. Total CQ #', '{:.3f}'.format(accum_total_cq / result_count)])
-    table.append_row(['Avg. Exec CQ #', '{:.3f}'.format(accum_exec_cq / result_count)])
-    table.append_row(['Avg. Timeout CQ #', '{:.3f}'.format(accum_timeout_cq / result_count)])
-    table.append_row(['Avg. Timeout CQ %', '{:.2f}%'.format(accum_timeout_cq / accum_exec_cq * 100)])
-    table.append_row(['Avg. Norm. Dist', '{:.3f}'.format(accum_norm_dist / result_count)])
-    table.append_row(['Avg. Parse Time', '{:.3f}s'.format(accum_parse_time / result_count)])
+    table.append_row(['Avg. Inverse Iters', '{:.3f}'.format(accum_inv_iters / result_count)])
+    # table.append_row(['Avg. Exec CQ #', '{:.3f}'.format(accum_exec_cq / result_count)])
+    # table.append_row(['Avg. Timeout CQ #', '{:.3f}'.format(accum_timeout_cq / result_count)])
+    # table.append_row(['Avg. Timeout CQ %', '{:.2f}%'.format(accum_timeout_cq / accum_exec_cq * 100)])
+    # table.append_row(['Avg. Norm. Dist', '{:.3f}'.format(accum_norm_dist / result_count)])
+    # table.append_row(['Avg. Parse Time', '{:.3f}s'.format(accum_parse_time / result_count)])
     table.append_row(['Avg. Query Time', '{:.3f}s'.format(accum_query_time / result_count)])
     table.append_row(['Avg. Computation Time', '{:.3f}s'.format(accum_comp_time / result_count)])
     print(table)
