@@ -33,8 +33,12 @@ def main():
                 cursor = db.cursor()
                 qstr = 'ALTER TABLE {} DROP INDEX {}'.format(relname, index_name)
                 print(qstr)
-                cursor.execute(qstr)
-                cursor.close()
+                try:
+                    cursor.execute(qstr)
+                    cursor.close()
+                except Exception as e:
+                    if str(e).startswith('1553'):
+                        print('Did not drop {}.{} because of foreign key.'.format(rel_name, index_name))
             else:
                 unique_keys.append(column_name)
 
