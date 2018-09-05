@@ -47,7 +47,7 @@ def main():
             continue
 
         result_count += 1
-        accum_total_cq += r['meta'][0]['total_cq']
+        accum_total_cq += r['total_cqs']
         if r['iters']:
             accum_inv_iters += 1 / r['iters']
         # accum_exec_cq += r['exec_cq']

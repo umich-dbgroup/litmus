@@ -92,6 +92,7 @@ def execute_mode(mode, db, tidb, parser, qid, task):
         raise Exception('Failed in finding intended query(s).')
 
     result = {
+        'total_cqs': len(task['cqs'])
         'iters': iters,
         'meta': result_metas
     }
