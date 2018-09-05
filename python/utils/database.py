@@ -207,6 +207,12 @@ class Database(object):
         return self.relations
 
     def execute(self, query):
+        if not self.query_cache:
+            self.query_cache = {}
+
+        if query in self.query_cache:
+            return self.query_cache[query]
+
         cursor = self.cursor()
 
         try:
@@ -220,6 +226,8 @@ class Database(object):
 
                 query_tuples.add(result)
             cursor.close()
+
+            self.query_cache[query] = query_tuples
             return query_tuples
         except Exception as e:
             cursor.close()
