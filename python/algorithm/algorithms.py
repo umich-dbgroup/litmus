@@ -296,8 +296,8 @@ class Exhaustive(Base):
         max_dist = 0
         dist_time = 0
         if tuples:
-            sorted_dists, dist_time = self.calc_dists(cand_cqs, tuples)
-            sorted_dists = self.max_dist_tuples(cand_cqs, tuples, sorted_dists, timed_out, TOP_DISTS)
+            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
+            sorted_dists = self.max_dist_tuples(cqs, tuples, sorted_dists, timed_out, TOP_DISTS)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_tuple, max_dist = sorted_dists.items()[0]
             max_tuple_cqids = tuples[max_tuple]
