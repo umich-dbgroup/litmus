@@ -18,7 +18,7 @@ def find_excludes(db):
     data = OrderedDict(sorted(data.items(), key=lambda x: x[0]))
     excludes = []
     for qid, task in data.items():
-        for cq in task['cqs']:
+        for cqid, cq in task['cqs'].items():
             if any(w in cq for w in NON_SPJ_WORDS):
                 excludes.append(int(qid))
                 break
