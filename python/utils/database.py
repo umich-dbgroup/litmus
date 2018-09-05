@@ -207,7 +207,7 @@ class Database(object):
         return self.relations
 
     def execute(self, query):
-        if not self.query_cache:
+        if not hasattr(self, 'query_cache'):
             self.query_cache = {}
 
         if query in self.query_cache:
