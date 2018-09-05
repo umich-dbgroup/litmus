@@ -31,13 +31,21 @@ def main():
 
     result_count = 0
     accum_total_cq = 0
-    accum_inv_iters = 0
     # accum_exec_cq = 0
     # accum_timeout_cq = 0
     # accum_norm_dist = 0
     # accum_parse_time = 0
     accum_query_time = 0
     accum_comp_time = 0
+
+    iters_0 = 0
+    iters_1 = 0
+    iters_2 = 0
+    iters_3 = 0
+    iters_4 = 0
+    iters_5_plus = 0
+    failed = 0
+
     for qid, r in results.items():
         if args.min and qid < args.min:
             continue
@@ -49,7 +57,20 @@ def main():
         result_count += 1
         accum_total_cq += r['total_cqs']
         if r['iters']:
-            accum_inv_iters += 1 / r['iters']
+            if r['iters'] == 0:
+                iters_0 += 1
+            elif r['iters'] == 1:
+                iters_1 += 1
+            elif r['iters'] == 2:
+                iters_2 += 1
+            elif r['iters'] == 3:
+                iters_3 += 1
+            elif r['iters'] == 4:
+                iters_4 += 1
+            else:
+                iters_5_plus += 1
+        else:
+            failed += 1
         # accum_exec_cq += r['exec_cq']
         # accum_timeout_cq += r['timeout_cq']
         # accum_norm_dist += r['dist'] / r['total_cq']
@@ -66,7 +87,13 @@ def main():
     table.append_row(['Total Results', '{}'.format(len(results))])
     table.append_row(['Analyzed Results', '{}'.format(result_count)])
     table.append_row(['Avg. Total CQ #', '{:.3f}'.format(accum_total_cq / result_count)])
-    table.append_row(['Avg. Inverse Iters', '{:.3f}'.format(accum_inv_iters / result_count)])
+    table.append_row(['# Tasks in 0 Iter', '{}'.format(iters_0)])
+    table.append_row(['# Tasks in 1 Iter', '{}'.format(iters_1)])
+    table.append_row(['# Tasks in 2 Iter', '{}'.format(iters_2)])
+    table.append_row(['# Tasks in 3 Iter', '{}'.format(iters_3)])
+    table.append_row(['# Tasks in 4 Iter', '{}'.format(iters_4)])
+    table.append_row(['# Tasks in 5+ Iter', '{}'.format(iters_5_plus)])
+    table.append_row(['# Failed Tasks', '{}'.format(failed)])
     # table.append_row(['Avg. Exec CQ #', '{:.3f}'.format(accum_exec_cq / result_count)])
     # table.append_row(['Avg. Timeout CQ #', '{:.3f}'.format(accum_timeout_cq / result_count)])
     # table.append_row(['Avg. Timeout CQ %', '{:.2f}%'.format(accum_timeout_cq / accum_exec_cq * 100)])
