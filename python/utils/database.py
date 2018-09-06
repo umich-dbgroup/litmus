@@ -207,6 +207,8 @@ class Database(object):
         return self.relations
 
     def execute(self, query):
+        print(query[:100])
+
         if not hasattr(self, 'query_cache'):
             self.query_cache = {}
 
@@ -214,6 +216,7 @@ class Database(object):
             if self.query_cache[query] is None:
                 raise Exception('Timeout: Query timed out.')
             else:
+                print('Reading query result from cache.')
                 return self.query_cache[query]
 
         cursor = self.cursor()
