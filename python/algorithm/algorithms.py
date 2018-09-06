@@ -210,10 +210,12 @@ class Overlap(Base):
 
         for type, part in part_set:
             print('Executing partition {}...'.format(type))
-            
+
             print('Rewriting queries for best overlap...')
             start = time.time()
             cur_cqs = dict(part.cqs)
+
+            all_timed_out = []
 
             for colnum, coltype in enumerate(type):
                 best = part.top_n_col_overlaps(1, colnum)
@@ -226,6 +228,8 @@ class Overlap(Base):
 
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
             self.print_stats(len(cur_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
+
+            all_timed_out.extend(timed_out)
 
             total_exec_cqs += len(cur_cqs)
             total_timeout_cqs += len(timed_out)
@@ -248,6 +252,8 @@ class Overlap(Base):
             if cur_cqs:
                 tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
                 self.print_stats(len(cur_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
+
+                all_timed_out.extend(timed_out)
 
                 total_exec_cqs += len(cur_cqs)
                 total_valid_cqs += len(valid_cqs)
