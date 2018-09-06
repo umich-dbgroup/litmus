@@ -261,6 +261,7 @@ class Overlap(Base):
 
         dist_time = 0
         max_tuple = None
+        max_tuple_cqids = None
         max_dist = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
