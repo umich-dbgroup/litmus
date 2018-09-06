@@ -152,7 +152,7 @@ class Query(object):
 
     @staticmethod
     def narrow_to_overlaps(db, query, proj, overlaps):
-        limited_str = query.query_str
+        query_str = query.query_str
 
         attr = db.get_attr(proj)
 
@@ -173,9 +173,11 @@ class Query(object):
                     limited_strs.append(u"{} IN ('{}')".format(proj, u"','".join([v.replace("'", "''") for v in ov.values])))
 
         if limited_strs:
+            if 'where' not in query_str.lower():
+                query_str += u' WHERE '
+            else:
+                query_str += u' AND '
             limited_str = u" OR ".join(limited_strs)
-            new_query_str = u'{} AND ({})'.format(query.query_str, limited_str)
-        else:
-            new_query_str = query.query_str
+            query_str += u'({})'.format(limited_str)
 
         return Query(new_query_str, query.projs, query.preds)
