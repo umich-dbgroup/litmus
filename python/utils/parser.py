@@ -183,4 +183,4 @@ class Query(object):
             limited_str = u" OR ".join(limited_strs)
             query_str += u'({})'.format(limited_str)
 
-        return Query(new_query_str, query.projs, query.preds)
+        return Query(query_str, query.projs, query.preds)
