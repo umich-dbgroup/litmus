@@ -17,7 +17,11 @@ class ProjPartition(object):
 
     def top_n_col_overlaps(self, n, colnum):
         if colnum in self.overlaps:
-            return self.overlaps[colnum].top_n(n)
+            col_overlaps = self.overlaps[colnum].top_n(n)
+            if col_overlaps:
+                return col_overlaps
+            else:
+                return None
         else:
             return None
 

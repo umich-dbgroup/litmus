@@ -137,7 +137,7 @@ class Query(object):
     def narrow_all(db, part_set, colnum, top_n_overlaps, queries):
         cur_queries = dict(queries)
         results = {}
-        attrs =  ProjPartition.attrs_from_overlaps(top_n_overlaps)
+        attrs = ProjPartition.attrs_from_overlaps(top_n_overlaps)
         if not attrs:
             raise Exception('Error! No attrs found in column {}'.format(colnum))
         for attr in attrs:
