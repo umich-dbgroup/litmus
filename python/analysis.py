@@ -31,19 +31,17 @@ def main():
 
     result_count = 0
     accum_total_cq = 0
-    # accum_exec_cq = 0
-    # accum_timeout_cq = 0
-    # accum_norm_dist = 0
-    # accum_parse_time = 0
     accum_query_time = 0
     accum_comp_time = 0
+    accum_total_time = 0
 
     iters_0 = 0
     iters_1 = 0
     iters_2 = 0
     iters_3 = 0
     iters_4 = 0
-    iters_5_plus = 0
+    iters_5 = 0
+    iters_6_plus = 0
     failed = 0
 
     for qid, r in results.items():
@@ -59,25 +57,23 @@ def main():
         if r['iters']:
             if r['iters'] == 0:
                 iters_0 += 1
-            elif r['iters'] == 1:
+            if r['iters'] <= 1:
                 iters_1 += 1
-            elif r['iters'] == 2:
+            if r['iters'] <= 2:
                 iters_2 += 1
-            elif r['iters'] == 3:
+            if r['iters'] <= 3:
                 iters_3 += 1
-            elif r['iters'] == 4:
+            if r['iters'] <= 4:
                 iters_4 += 1
-            else:
-                iters_5_plus += 1
+            if r['iters'] <= 5:
+                iters_5 += 1
+            iters_6_plus += 1
         else:
             failed += 1
-        # accum_exec_cq += r['exec_cq']
-        # accum_timeout_cq += r['timeout_cq']
-        # accum_norm_dist += r['dist'] / r['total_cq']
-        # accum_parse_time += r['parse_time']
         for meta in r['meta']:
             accum_query_time += meta['query_time']
             accum_comp_time += meta['comp_time']
+            accum_total_time += meta['query_time'] + meta['comp_time']
 
     table = BeautifulTable()
     table.column_headers = ['METRIC', 'VALUE']
@@ -87,20 +83,17 @@ def main():
     table.append_row(['Total Results', '{}'.format(len(results))])
     table.append_row(['Analyzed Results', '{}'.format(result_count)])
     table.append_row(['Avg. Total CQ #', '{:.3f}'.format(accum_total_cq / result_count)])
-    table.append_row(['# Tasks in 0 Iter', '{}'.format(iters_0)])
-    table.append_row(['# Tasks in 1 Iter', '{}'.format(iters_1)])
-    table.append_row(['# Tasks in 2 Iter', '{}'.format(iters_2)])
-    table.append_row(['# Tasks in 3 Iter', '{}'.format(iters_3)])
-    table.append_row(['# Tasks in 4 Iter', '{}'.format(iters_4)])
-    table.append_row(['# Tasks in 5+ Iter', '{}'.format(iters_5_plus)])
-    table.append_row(['# Failed Tasks', '{}'.format(failed)])
-    # table.append_row(['Avg. Exec CQ #', '{:.3f}'.format(accum_exec_cq / result_count)])
-    # table.append_row(['Avg. Timeout CQ #', '{:.3f}'.format(accum_timeout_cq / result_count)])
-    # table.append_row(['Avg. Timeout CQ %', '{:.2f}%'.format(accum_timeout_cq / accum_exec_cq * 100)])
-    # table.append_row(['Avg. Norm. Dist', '{:.3f}'.format(accum_norm_dist / result_count)])
-    # table.append_row(['Avg. Parse Time', '{:.3f}s'.format(accum_parse_time / result_count)])
+    table.append_row(['# Tasks <= 0 Iter (%)', '{} ({:.2f}%)'.format(iters_0, iters_0 / result_count * 100)])
+    table.append_row(['# Tasks <= 1 Iter (%)', '{} ({:.2f}%)'.format(iters_1, iters_1 / result_count * 100)])
+    table.append_row(['# Tasks <= 2 Iter (%)', '{} ({:.2f}%)'.format(iters_2, iters_2 / result_count * 100)])
+    table.append_row(['# Tasks <= 3 Iter (%)', '{} ({:.2f}%)'.format(iters_3, iters_3 / result_count * 100)])
+    table.append_row(['# Tasks <= 4 Iter (%)', '{} ({:.2f}%)'.format(iters_4, iters_4 / result_count * 100)])
+    table.append_row(['# Tasks <= 5 Iter (%)', '{} ({:.2f}%)'.format(iters_5, iters_5 / result_count * 100)])
+    table.append_row(['# Tasks >= 6 Iter (%)', '{} ({:.2f}%)'.format(iters_6_plus, iters_6_plus / result_count * 100)])
+    table.append_row(['# Failed Tasks (%)', '{} ({:.2f}%)'.format(failed, failed / result_count * 100)])
     table.append_row(['Avg. Query Time', '{:.3f}s'.format(accum_query_time / result_count)])
     table.append_row(['Avg. Computation Time', '{:.3f}s'.format(accum_comp_time / result_count)])
+    table.append_row(['Avg. Total Time', '{:.3f}s'.format(accum_total_time / result_count)])
     print(table)
 
 if __name__ == '__main__':
