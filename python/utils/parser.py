@@ -170,7 +170,10 @@ class Query(object):
                 limited_strs.append(u'({} >= {} AND {} <= {})'.format(proj, ov.min, proj, ov.max))
             elif isinstance(ov, TextIntersect):
                 if ov.values is not None:
+                    ov.values = sorted(ov.values)
                     limited_strs.append(u"{} IN ('{}')".format(proj, u"','".join([v.replace("'", "''") for v in ov.values])))
+
+        limited_strs = sorted(limited_strs)
 
         if limited_strs:
             if 'where' not in query_str.lower():
