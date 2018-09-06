@@ -211,7 +211,10 @@ class Database(object):
             self.query_cache = {}
 
         if query in self.query_cache:
-            return self.query_cache[query]
+            if self.query_cache[query] is None:
+                raise Exception('Timeout: Query timed out.')
+            else:
+                return self.query_cache[query]
 
         cursor = self.cursor()
 
@@ -232,5 +235,6 @@ class Database(object):
         except Exception as e:
             cursor.close()
             if str(e).startswith('3024'):
+                self.query_cache[query] = None
                 raise Exception('Timeout: Query timed out.')
             raise e
