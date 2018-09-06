@@ -35,7 +35,6 @@ def main():
     accum_comp_time = 0
     accum_total_time = 0
 
-    iters_0 = 0
     iters_1 = 0
     iters_2 = 0
     iters_3 = 0
@@ -54,9 +53,7 @@ def main():
 
         result_count += 1
         accum_total_cq += r['total_cqs']
-        if r['iters']:
-            if r['iters'] == 0:
-                iters_0 += 1
+        if r['iters'] is not None:
             if r['iters'] <= 1:
                 iters_1 += 1
             if r['iters'] <= 2:
@@ -83,7 +80,6 @@ def main():
     table.append_row(['Total Results', '{}'.format(len(results))])
     table.append_row(['Analyzed Results', '{}'.format(result_count)])
     table.append_row(['Avg. Total CQ #', '{:.3f}'.format(accum_total_cq / result_count)])
-    table.append_row(['# Tasks <= 0 Iter (%)', '{} ({:.2f}%)'.format(iters_0, iters_0 / result_count * 100)])
     table.append_row(['# Tasks <= 1 Iter (%)', '{} ({:.2f}%)'.format(iters_1, iters_1 / result_count * 100)])
     table.append_row(['# Tasks <= 2 Iter (%)', '{} ({:.2f}%)'.format(iters_2, iters_2 / result_count * 100)])
     table.append_row(['# Tasks <= 3 Iter (%)', '{} ({:.2f}%)'.format(iters_3, iters_3 / result_count * 100)])
