@@ -210,54 +210,55 @@ class Overlap(Base):
 
         for type, part in part_set:
             print('Executing partition {}...'.format(type))
+            
+            print('Rewriting queries for best overlap...')
+            start = time.time()
+            cur_cqs = dict(part.cqs)
 
-            all_timed_out = []
-            all_sql_errors = []
-            for n in range(1, min(4, part.max_overlap_count())):
-                print('Rewriting queries for top-{} overlaps...'.format(n))
-                start = time.time()
-                cur_cqs = dict(part.cqs)
+            for colnum, coltype in enumerate(type):
+                best = part.top_n_col_overlaps(1, colnum)
+                if best is not None:
+                    cur_cqs = Query.narrow_all(self.db, part_set, colnum, best, cur_cqs)
+            interval_time = time.time() - start
+            print('Done rewriting queries [{}s]'.format(interval_time))
 
-                for cqid in all_timed_out:
-                    cur_cqs.pop(cqid, None)
+            total_interval_time += interval_time
 
-                for cqid in all_sql_errors:
-                    cur_cqs.pop(cqid, None)
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
+            self.print_stats(len(cur_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
-                if not cur_cqs:
-                    print('No CQs to execute...')
-                    break
+            total_exec_cqs += len(cur_cqs)
+            total_timeout_cqs += len(timed_out)
+            total_error_cqs += len(sql_errors)
+            total_valid_cqs += len(valid_cqs)
+            total_query_time += query_time
 
-                for colnum, coltype in enumerate(type):
-                    top_n = part.top_n_col_overlaps(n, colnum)
-                    if top_n is not None:
-                        cur_cqs = Query.narrow_all(self.db, part_set, colnum, top_n, cur_cqs)
-                interval_time = time.time() - start
-                print('Done rewriting queries [{}s]'.format(interval_time))
+            if tuples:
+                break
 
-                total_interval_time += interval_time
+            print('Could not find tuple, executing full partition...')
+            cur_cqs = dict(part.cqs)
 
+            for cqid in timed_out:
+                cur_cqs.pop(cqid, None)
+
+            for cqid in sql_errors:
+                cur_cqs.pop(cqid, None)
+
+            if cur_cqs:
                 tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
                 self.print_stats(len(cur_cqs), len(timed_out), len(sql_errors), len(valid_cqs))
 
-                all_timed_out.extend(timed_out)
-                all_sql_errors.extend(sql_errors)
-
                 total_exec_cqs += len(cur_cqs)
+                total_valid_cqs += len(valid_cqs)
                 total_timeout_cqs += len(timed_out)
                 total_error_cqs += len(sql_errors)
-                total_valid_cqs += len(valid_cqs)
                 total_query_time += query_time
 
                 if tuples:
                     break
                 else:
-                    print('No tuples found, expanding overlaps...')
-
-            if tuples:
-                break
-            else:
-                print('No tuples found, executing next partition...')
+                    print('No tuples found, executing next partition...')
 
         dist_time = 0
         max_tuple = None
