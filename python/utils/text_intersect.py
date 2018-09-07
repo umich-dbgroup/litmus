@@ -178,7 +178,7 @@ class TextIntersect(object):
 
         second_rel_alias = second.rel.name[0]
         if second_rel_alias == first_rel_alias:
-            second_rel_alias = second.rel.name[0:2]
+            second_rel_alias = second.rel.name[0:3]
         second_alias = '{}.{}'.format(second_rel_alias, second.name)
 
         proj_str = first_alias
