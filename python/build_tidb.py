@@ -15,9 +15,7 @@ def main():
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
-    db_cache_path = os.path.join(config.get('database', 'cache_dir'), '{}.cache'.format(args.db))
-
-    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, db_cache_path, timeout=None)
+    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=None)
 
     tidb = TextIntersectDatabase(db, os.path.join(config.get('tidb', 'dir'), args.db + '.tidb'))
     tidb.load()
