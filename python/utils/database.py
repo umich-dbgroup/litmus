@@ -81,7 +81,7 @@ def convert_mysql_type(mysql_type):
 
 class Database(object):
     # relations to ignore from db
-    IGNORE_RELS = ['size', 'history']
+    IGNORE_RELS = ['size', 'history', 'ids']
 
     def __init__(self, user, pw, host, db, cache_dir, timeout=None, buffer_pool_size=None):
         print("Loading database...")
