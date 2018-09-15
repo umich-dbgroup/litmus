@@ -8,5 +8,6 @@ mo-logs==2.16.18199
 mo-math==2.16.18199
 moz-sql-parser==2.15.18155
 mysql-connector==2.1.6
+numpy==1.15.1
 pyparsing==2.2.0
 tqdm==4.25.0
