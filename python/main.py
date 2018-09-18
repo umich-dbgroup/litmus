@@ -52,7 +52,7 @@ def user_feedback(cand_cqs, tuple_cqids, ans):
 
     return new_cqs
 
-def execute_mode(mode, db, parser, qid, task, part_func):
+def execute_mode(mode, db, parser, qid, task, part_func, aig):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
