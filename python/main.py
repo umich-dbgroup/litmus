@@ -143,7 +143,7 @@ def main():
 
     # only load aig if mode is partition
     aig = None
-    if args.mode == 'partition':
+    if args.mode == 'partition' and args.part_func == 'range':
         aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
     tasks = load_tasks(args.data_dir, args.db)
