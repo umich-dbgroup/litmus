@@ -218,6 +218,7 @@ class Partition(Base):
             print('{}, Count: {}'.format(k, len(v)))
         print()
 
+        tuple_find_time = 0
         t = None
         for part in part_set:
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(type))
@@ -229,10 +230,14 @@ class Partition(Base):
             total_error_cqs += len(sql_errors)
             total_query_time += query_time
 
+            start = time.time()
             max_tuples = self.find_part_max_dist(part_set, part, tuples)
+            tuple_find_time += time.time() - start
 
             if max_tuples:
+                start = time.time()
                 opt_t = self.find_optimal_tuple(part_set, part, max_tuples)
+                tuple_find_time += time.time() - start
 
                 if opt_t:
                     t = opt_t
@@ -256,7 +261,7 @@ class Partition(Base):
 
             self.print_dist(max_tuple, max_dist, max_tuple_cqids)
 
-        comp_time = partition_time + dist_time
+        comp_time = partition_time + tuple_find_time + dist_time
 
         result_meta = {
             'dist': max_dist,
