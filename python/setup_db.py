@@ -1,7 +1,7 @@
 import argparse
 import ConfigParser
 
-from utils.database import Database
+from modules.database import Database
 
 TEXT_INDEX_SIZE = 15
 

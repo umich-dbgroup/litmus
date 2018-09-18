@@ -10,12 +10,12 @@ import traceback
 
 from beautifultable import BeautifulTable
 
-from algorithm.algorithms import Base, Partition, Overlap, Exhaustive, Random
-from utils.database import Database
-from utils.find_spj import find_excludes
-from utils.mailer import Mailer
-from utils.parser import SQLParser
-from utils.text_intersect import TextIntersectDatabase
+from modules.algorithms import Base, Partition, Exhaustive, Random
+from modules.database import Database
+from modules.find_spj import find_excludes
+from modules.mailer import Mailer
+from modules.parser import SQLParser
+from modules.text_intersect import TextIntersectDatabase
 
 def print_result(qid, result):
     table = BeautifulTable()
@@ -51,7 +51,7 @@ def user_feedback(cand_cqs, tuple_cqids, ans):
 
     return new_cqs
 
-def execute_mode(mode, db, tidb, parser, qid, task):
+def execute_mode(mode, db, parser, qid, task, part_func):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
@@ -61,9 +61,9 @@ def execute_mode(mode, db, tidb, parser, qid, task):
     elif mode == 'exhaustive':
         algorithm = Exhaustive(db, parser)
     elif mode == 'partition':
-        algorithm = Partition(db, parser)
-    elif mode == 'overlap':
-        algorithm = Overlap(db, parser, tidb)
+        algorithm = Partition(db, parser, part_func=part_func, aig=aig)
+    # elif mode == 'overlap':
+    #     algorithm = Overlap(db, parser, tidb)
 
     cand_cqs = task['cqs'].copy()
     result_metas = []
@@ -127,9 +127,10 @@ def save_results(results, path):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['random', 'exhaustive', 'partition', 'overlap'])
+    argparser.add_argument('mode', choices=['random', 'exhaustive', 'partition'])
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--data_dir', default='../data')
+    argparser.add_argument('--part_func', choices=['type', 'range'], default='type')
     argparser.add_argument('--email')
     args = argparser.parse_args()
 
@@ -139,11 +140,10 @@ def main():
     db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=config.get('database', 'timeout'), buffer_pool_size=config.get('database', 'buffer_pool_size'))
     parser = SQLParser(config.get('parser', 'cache_path'))
 
-    # only load tidb if mode is overlap
-    if args.mode == 'overlap':
-        tidb = TextIntersectDatabase.from_file(db, os.path.join(config.get('tidb', 'dir'), args.db + '.tidb'))
-    else:
-        tidb = None
+    # only load aig if mode is partition
+    aig = None
+    if args.mode == 'partition':
+        aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
     tasks = load_tasks(args.data_dir, args.db)
 
@@ -160,7 +160,7 @@ def main():
             if args.qid in results:
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
-                results[args.qid] = execute_mode(args.mode, db, tidb, parser, args.qid, tasks[args.qid])
+                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.part_func, aig)
                 save_results(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
@@ -173,7 +173,7 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    results[qid] = execute_mode(args.mode, db, tidb, parser, qid, task)
+                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.part_func, aig)
                     save_results(results, cache_path)
                 # print_result(qid, results[qid])
 
