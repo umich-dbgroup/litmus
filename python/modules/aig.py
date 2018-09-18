@@ -81,7 +81,7 @@ class AIG(object):
 
     def get_text_intersects(self, attrs):
         attrs = list(attrs)
-        
+
         # select a single attr, find edges to all other attrs
         attr = attrs[0]
         vals = None
@@ -133,7 +133,6 @@ class AIGVertex(object):
         self.adjacent[v.attr] = e
 
     def get_edge(self, attr):
-        print(str(self.attr), str(attr))
         return self.adjacent[attr]
 
     def get_adjacent(self):
