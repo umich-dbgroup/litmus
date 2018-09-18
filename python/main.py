@@ -147,8 +147,12 @@ def main():
 
     tasks = load_tasks(args.data_dir, args.db)
 
-    cache_path = os.path.join(config.get('main', 'cache_dir'), args.db + '_' + args.mode + '.pkl')
-    out_path = os.path.join(config.get('main', 'results_dir'), args.db + '_' + args.mode + '.pkl')
+    if args.mode == 'partition':
+        file_name = '{}_{}_{}.pkl'.format(args.db, args.mode, args.part_func)
+    else:
+        file_name = '{}_{}.pkl'.format(args.db, args.mode)
+    cache_path = os.path.join(config.get('main', 'cache_dir'), file_name)
+    out_path = os.path.join(config.get('main', 'results_dir'), file_name)
     results = load_cache(cache_path)
 
     # load qids to exclude
