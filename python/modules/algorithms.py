@@ -8,11 +8,8 @@ import traceback
 from collections import OrderedDict
 from tqdm import tqdm
 
-from overlap_types import ColumnNumIntervals, ColumnTextIntersects
 from parser import Query
 from partitions import PartSet, PartByType, PartByRange
-
-__all__ = ['Base', 'Partition', 'Overlap', 'Exhaustive']
 
 TOP_DISTS = 5
 
@@ -166,11 +163,10 @@ class Partition(Base):
                     return True
         return False
 
-    def find_optimal_tuple(self, part_set, part, tuples):
-        future_part_max_dist = self.calc_future_part_max_dist(part_set, part)
+    def find_part_max_dist(self, part_set, part, tuples):
+        max_dist = 0
+        result = []
 
-        cur_part_max_dist = 0
-        result = None
         for t, cqids in tuples.items():
             # exclude if requires executing another partition
             if self.need_check_future_part(part_set, part, cqids):
@@ -178,16 +174,24 @@ class Partition(Base):
 
             d = self.dist(part_set.cqs, t, cqids)
 
+            if d > max_dist:
+                max_dist = d
+                result = [(t, cqids, d)]
+            elif d == max_dist:
+                result.append((t, cqids, d))
+
+        return result
+
+    def find_optimal_tuple(self, part_set, part, max_tuples):
+        future_part_max_dist = self.calc_future_part_max_dist(part_set, part)
+
+        for t, cqids, d in max_tuples:
             # exclude if not exceed future partition max dist
             if d < future_part_max_dist:
                 continue
 
-            # only update if max for current partition
-            if d > cur_part_max_dist:
-                cur_part_max_dist = d
-                result = (t, cqids)
-
-        return result
+            return (t, cqids)
+        return None
 
     def execute(self, cqs):
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
@@ -214,6 +218,7 @@ class Partition(Base):
             print('{}, Count: {}'.format(k, len(v)))
         print()
 
+        t = None
         for part in part_set:
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(type))
             part_set.update_executed(part.cqs.keys())
@@ -224,13 +229,18 @@ class Partition(Base):
             total_error_cqs += len(sql_errors)
             total_query_time += query_time
 
-            t = self.find_optimal_tuple(part_set, part, tuples)
+            max_tuples = self.find_part_max_dist(part_set, part, tuples)
 
-            if t:
-                break
-            else:
-                print('Optimal tuple not found, executing next partition...')
-                continue
+            if max_tuples:
+                opt_t = self.find_optimal_tuple(part_set, part, max_tuples)
+
+                if opt_t:
+                    t = opt_t
+                    break
+                else:
+                    t = max_tuples[0]
+
+            print('Optimal tuple not found, executing next partition...')
 
         max_dist = 0
         max_tuple = None

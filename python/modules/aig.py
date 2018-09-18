@@ -69,6 +69,43 @@ class AIG(object):
     def get_vertices(self):
         return self.vertices.values()
 
+    def get_num_intersects(self, attrs):
+        largest_min = max(a.min for a in attrs)
+        smallest_max = min(a.max for a in attrs)
+
+        return {
+            'type': 'num',
+            'min': largest_min,
+            'max': smallest_max
+        }
+
+    def get_text_intersects(self, attrs):
+        # select a single attr, find edges to all other attrs
+        attr = attrs[0]
+        vals = None
+        for i in range(1, len(attrs)):
+            e = self.get_vertex(attr).get_edge(attrs[i])
+
+            if not e:
+                raise Exception('No edge found between {} and {}!'.format(attr, attrs[i]))
+
+            if vals is None:
+                vals = e.values.vals
+            else:
+                vals &= e.values.vals
+        return {
+            'type': 'text',
+            'values': vals
+        }
+
+    def get_intersects(self, type, attrs):
+        if type == 'num':
+            return self.get_num_intersects(attrs)
+        elif type == 'text':
+            return self.get_text_intersects(attrs)
+        else:
+            return None
+
     def bron_kerbosch(self, cliques, R, P, X):
         if not P and not X:
             cliques.append(R)
@@ -92,6 +129,9 @@ class AIGVertex(object):
 
     def add_neighbor(self, v, e):
         self.adjacent[v.attr] = e
+
+    def get_edge(self, v):
+        return self.adjacent[v]
 
     def get_adjacent(self):
         return self.adjacent.keys()
