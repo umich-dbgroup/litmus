@@ -80,6 +80,8 @@ class AIG(object):
         }
 
     def get_text_intersects(self, attrs):
+        attrs = list(attrs)
+        
         # select a single attr, find edges to all other attrs
         attr = attrs[0]
         vals = None
@@ -112,7 +114,7 @@ class AIG(object):
             return cliques
         for attr in P:
             singleton = set([attr])
-            N = attr.get_adjacent()
+            N = set(self.get_vertex(attr).get_adjacent())
             self.bron_kerbosch(cliques, R | singleton, P & N, X & N)
             P = P - singleton
             X = X | singleton
@@ -130,17 +132,15 @@ class AIGVertex(object):
     def add_neighbor(self, v, e):
         self.adjacent[v.attr] = e
 
-    def get_edge(self, v):
-        return self.adjacent[v]
+    def get_edge(self, attr):
+        print(str(self.attr), str(attr))
+        return self.adjacent[attr]
 
     def get_adjacent(self):
         return self.adjacent.keys()
 
     def get_id(self):
         return self.id
-
-    def get_edge(self, adj_v_id):
-        return self.adjacent[adj_v_id]
 
 class AIGEdge(object):
     def __init__(self, values):
