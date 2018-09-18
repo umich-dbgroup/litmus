@@ -97,8 +97,10 @@ class PartByRange(object):
     def combine_pos_parts(self, pos_parts):
         for pos, pos_part in pos_parts.items():
             # TODO: finding combinations with partitions at another pos is a NIGHTMARE?!?!
+            pass
 
         # TODO: return a dict with part_key -> SinglePart
+        pass
 
     def __call__(self, db, cqs):
         part_by_type = PartByType()
