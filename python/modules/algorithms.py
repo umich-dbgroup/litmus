@@ -246,7 +246,7 @@ class Partition(Base):
                     t = opt_t
                     break
 
-                if t is None or max_tuples[2] > t[2]:
+                if t is None or max_tuples[0][2] > t[2]:
                     t = max_tuples[0]
 
             print('Optimal tuple not found, executing next partition...')
