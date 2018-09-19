@@ -190,7 +190,7 @@ class Partition(Base):
             if d < future_part_max_dist:
                 continue
 
-            return (t, cqids)
+            return (t, cqids, d)
         return None
 
     def execute(self, cqs):
@@ -234,6 +234,9 @@ class Partition(Base):
             max_tuples = self.find_part_max_dist(part_set, part, tuples)
             tuple_find_time += time.time() - start
 
+            if t is not None:
+                max_tuples.append(t)
+
             if max_tuples:
                 start = time.time()
                 opt_t = self.find_optimal_tuple(part_set, part, max_tuples)
@@ -242,7 +245,8 @@ class Partition(Base):
                 if opt_t:
                     t = opt_t
                     break
-                else:
+
+                if t is not None and max_tuples[2] > t[2]:
                     t = max_tuples[0]
 
             print('Optimal tuple not found, executing next partition...')
