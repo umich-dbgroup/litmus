@@ -221,7 +221,7 @@ class Partition(Base):
         tuple_find_time = 0
         t = None
         for part in part_set:
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(type))
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']))
             part_set.update_executed(part.cqs.keys())
 
             total_exec_cqs += len(part.cqs)
