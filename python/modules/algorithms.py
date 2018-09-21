@@ -9,7 +9,7 @@ from collections import OrderedDict
 from tqdm import tqdm
 
 from parser import Query
-from partitions import PartSet, PartByType, PartByRange
+from partitions import PartSet
 from qig import QIGByType
 
 TOP_DISTS = 5
