@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from parser import Query
 from partitions import PartSet
-from qig import QIGByType
+from qig import QIGByType, QIGByRange
 
 TOP_DISTS = 5
 
