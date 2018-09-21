@@ -18,8 +18,8 @@ class AIG(object):
         start = time.time()
         if os.path.exists(self.path):
             self.vertices = pickle.load(open(self.path, 'rb'))
-            return True
             print('Loaded. [{}s]'.format(time.time() - start))
+            return True
         print('AIG not in cache.')
         return False
 
@@ -73,11 +73,7 @@ class AIG(object):
         largest_min = max(a.min for a in attrs)
         smallest_max = min(a.max for a in attrs)
 
-        return {
-            'type': 'num',
-            'min': largest_min,
-            'max': smallest_max
-        }
+        return AttributeIntersect('num', min=largest_min, max=smallest_max)
 
     def get_text_intersects(self, attrs):
         attrs = list(attrs)
@@ -95,10 +91,8 @@ class AIG(object):
                 vals = e.values.vals
             else:
                 vals &= e.values.vals
-        return {
-            'type': 'text',
-            'values': vals
-        }
+
+        return AttributeIntersect('text', vals=vals)
 
     def get_intersects(self, type, attrs):
         if type == 'num':
@@ -108,20 +102,20 @@ class AIG(object):
         else:
             return None
 
-    def bron_kerbosch(self, cliques, R, P, X):
-        if not P and not X:
-            cliques.append(R)
-            return cliques
-        for attr in P:
-            singleton = set([attr])
-            N = set(self.get_vertex(attr).get_adjacent())
-            self.bron_kerbosch(cliques, R | singleton, P & N, X & N)
-            P = P - singleton
-            X = X | singleton
-        return cliques
-
-    def find_maximal_cliques(self, attrs):
-        return self.bron_kerbosch([], set(), set(attrs), set())
+    # def bron_kerbosch(self, cliques, R, P, X):
+    #     if not P and not X:
+    #         cliques.append(R)
+    #         return cliques
+    #     for attr in P:
+    #         singleton = set([attr])
+    #         N = set(self.get_vertex(attr).get_adjacent())
+    #         self.bron_kerbosch(cliques, R | singleton, P & N, X & N)
+    #         P = P - singleton
+    #         X = X | singleton
+    #     return cliques
+    #
+    # def find_maximal_cliques(self, attrs):
+    #     return self.bron_kerbosch([], set(), set(attrs), set())
 
 
 class AIGVertex(object):

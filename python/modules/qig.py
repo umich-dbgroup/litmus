@@ -75,8 +75,11 @@ class QIG(object):
             X = X | singleton
         return cliques
 
+    def find_maximal_cliques(self):
+        return self.bron_kerbosch([], set(), set(self.get_cqids()), set())
+
     def find_partition_set(self):
-        cliques = self.bron_kerbosch([], set(), set(self.get_cqids()), set())
+        cliques = self.find_maximal_cliques()
 
         parts = {}
         for clique in cliques:
@@ -149,7 +152,8 @@ class PosQIG(object):
 class QIGByType(QIG):
     def init_vertices(self):
         for cqid, cq in self.cqs.items():
-            types = ()
+            attrs = []
+            types = []
             for pos, proj in enumerate(cq.projs):
                 attr = self.db.get_attr(proj)
 
@@ -158,9 +162,13 @@ class QIGByType(QIG):
                 else:
                     attr_type = attr.type
 
-                types = types + (attr_type,)
+                attrs.append(attr)
+                types.append(attr_type)
 
-            self.add_vertex(cqid, {'types': types})
+            self.add_vertex(cqid, {
+                'attrs': attrs,
+                'types': types
+            })
 
     def construct_pos_qigs(self):
         for cqid, cq in self.cqs.items():
@@ -186,11 +194,6 @@ class QIGByType(QIG):
             raise Exception('Cannot get meta for empty cqids set.')
         v1 = self.get_vertex(list(cqids)[0])
 
-        # sanity check
-        # TODO: delete this if everything's working
-        if any(self.get_vertex(cqid).meta['types'] != v1.meta['types'] for cqid in cqids):
-            raise Exception('Meta does not match!')
-
         return v1.meta
 
     def part_key(self, part):
@@ -212,15 +215,67 @@ class QIGByType(QIG):
 
         return components
 
-    def find_partition_set(self):
-        cliques = self.find_components()
+    def find_maximal_cliques(self):
+        return self.find_components()
 
-        parts = {}
-        for clique in cliques:
-            part = SinglePart(self.get_meta(clique))
-            for cqid in clique:
-                part.add(cqid, self.cqs[cqid])
+def QIGByRange(QIGByType):
+    def __init__(self, db, cqs, aig):
+        self.aig = aig
+        self.by_type_counter = {}
+        super(QIGByRange, self).__init__(db, cqs)
 
-            parts[self.part_key(part)] = part
+    def construct_pos_qigs(self):
+        for cqid, cq in self.cqs.items():
+            cq_attrs = self.get_vertex(cqid).meta['attrs']
+            cq_types = self.get_vertex(cqid).meta['types']
+            for pos, attr in enumerate(cq_attrs):
+                if pos not in self.posqigs:
+                    self.posqigs[pos] = PosQIG(self.db, pos)
+                posqig = self.posqigs[pos]
 
-        return PartSet(parts, self.cqs)
+                posqig.add_vertex(cqid, {
+                    'attr': attr,
+                    'type': type
+                })
+
+                for vid, v in posqig.vertices.items():
+                    # ignore if checking same vertex we just added
+                    if vid == cqid:
+                        continue
+
+                    # add edge only if type is same and they intersect
+                    e = self.aig.get_vertex(v.meta['attr']).get_edge(attr)
+                    if type == v.meta['type'] and e:
+                        posqig.add_edge(cqid, vid, {
+                            'intersect': e.values
+                        })
+
+    def get_meta(self, cqids):
+        if not cqids:
+            raise Exception('Cannot get meta for empty cqids set.')
+
+        cqids = list(cqids)
+        v1 = self.get_vertex(cqids[0])
+        size = len(v1.meta['attrs'])
+
+        intersects = []
+        for pos in range(0, size)):
+            attrs = [self.get_vertex(cqid).meta['attrs'][pos] for cqid in cqids]
+            intersects.append(self.aig.get_intersects(attrs[0].type, attrs))
+
+        return {
+            'intersects': intersects,
+            'types': v1.meta['types']
+        }
+
+    def part_key(self, part):
+        types = part.meta['types']
+        if types not in self.by_type_counter:
+            self.by_type_counter[types] = 0
+
+        key = '{}/{}'.format(str(types), self.by_type_counter[types])
+        self.by_type_counter[types] += 1
+        return key
+
+    # TODO: do we need to implement something better than Bron-Kerbosch here?
+    # def find_maximal_cliques(self):
