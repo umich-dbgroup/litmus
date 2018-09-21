@@ -2,6 +2,8 @@ import os
 import pickle
 import time
 
+from database import AttributeIntersect
+
 # Attribute Intersection Graph
 class AIG(object):
     def __init__(self, db, path):
