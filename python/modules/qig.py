@@ -282,5 +282,5 @@ class QIGByRange(QIGByType):
         self.by_type_counter[types] += 1
         return key
 
-    # TODO: do we need to implement something better than Bron-Kerbosch here?
-    # def find_maximal_cliques(self):
+    def find_maximal_cliques(self):
+        return self.bron_kerbosch([], set(), set(self.get_cqids()), set())
