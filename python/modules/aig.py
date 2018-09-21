@@ -127,7 +127,10 @@ class AIGVertex(object):
         self.adjacent[v.attr] = e
 
     def get_edge(self, attr):
-        return self.adjacent[attr]
+        if attr in self.adjacent:
+            return self.adjacent[attr]
+        else:
+            return None
 
     def get_adjacent(self):
         return self.adjacent.keys()
