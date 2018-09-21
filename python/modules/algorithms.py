@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from parser import Query
 from partitions import PartSet, PartByType, PartByRange
+from qig import QIGByType
 
 TOP_DISTS = 5
 
@@ -196,16 +197,21 @@ class Partition(Base):
     def execute(self, cqs):
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
 
-        print("Partitioning CQs by {}, sorting by {} (None = default)...".format(self.part_func, self.part_sort))
+        print('Constructing QIG with information: {}'.format(self.part_func))
         start = time.time()
-        part_set = PartSet(cqs_parsed)
         if self.part_func == 'type':
-            part_set.partition(self.db, PartByType())
+            qig = QIGByType(self.db, cqs_parsed)
         elif self.part_func == 'range':
-            part_set.partition(self.db, PartByRange(aig=self.aig))
+            qig = QIGByRange(self.db, cqs_parsed, self.aig)
+        qig_time = time.time() - start
+        print("Done partitioning [{}s]".format(qig_time))
+
+        print('Partitioning (maximal cliques + sort)...')
+        start = time.time()
+        part_set = qig.find_partition_set()
         part_set.sort(self.part_sort)
         partition_time = time.time() - start
-        print("Done partitioning [{}s]".format(partition_time))
+        print('Done partitioning [{}s]'.format(partition_time))
 
         total_exec_cqs = 0
         total_valid_cqs = 0
@@ -265,7 +271,7 @@ class Partition(Base):
 
             self.print_dist(max_tuple, max_dist, max_tuple_cqids)
 
-        comp_time = partition_time + tuple_find_time + dist_time
+        comp_time = qig_time + partition_time + tuple_find_time + dist_time
 
         result_meta = {
             'dist': max_dist,

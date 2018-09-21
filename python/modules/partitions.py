@@ -1,9 +1,9 @@
 from collections import OrderedDict
 
 class PartSet(object):
-    def __init__(self, cqs):
+    def __init__(self, parts, cqs):
         self.cqs = cqs
-        self.parts = None
+        self.parts = parts
         self.executed = set()     # list of executed cqids
 
     def __len__(self):
@@ -25,8 +25,8 @@ class PartSet(object):
     def update_executed(self, executed):
         self.executed.update(executed)
 
-    def partition(self, db, part_func):
-        self.parts = part_func(db, self.cqs)
+    # def partition(self, db, part_func):
+    #     self.parts = part_func(db, self.cqs)
 
     def sort(self, sort_func=None):
         if sort_func is None:
