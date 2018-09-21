@@ -9,9 +9,9 @@ import traceback
 from moz_sql_parser import parse
 from tqdm import tqdm
 
-from overlap_types import NumInterval
-from text_intersect import TextIntersect
-from partition_set import ProjPartition
+# from overlap_types import NumInterval
+# from text_intersect import TextIntersect
+# from partition_set import ProjPartition
 
 class SQLParser(object):
     def __init__(self, cache_path):
@@ -133,54 +133,54 @@ class Query(object):
                 return False
         return result
 
-    @staticmethod
-    def narrow_all(db, part_set, colnum, top_n_overlaps, queries):
-        cur_queries = dict(queries)
-        results = {}
-        attrs = ProjPartition.attrs_from_overlaps(top_n_overlaps)
-        if not attrs:
-            raise Exception('Error! No attrs found in column {}'.format(colnum))
-        for attr in attrs:
-            cq_infos = part_set.attrs_to_cqs[colnum][attr]
-            for cqid, proj in cq_infos:
-                if cqid in cur_queries:
-                    orig = cur_queries[cqid]
-                    new_query = Query.narrow_to_overlaps(db, orig, proj, top_n_overlaps)
+    # @staticmethod
+    # def narrow_all(db, part_set, colnum, top_n_overlaps, queries):
+    #     cur_queries = dict(queries)
+    #     results = {}
+    #     attrs = ProjPartition.attrs_from_overlaps(top_n_overlaps)
+    #     if not attrs:
+    #         raise Exception('Error! No attrs found in column {}'.format(colnum))
+    #     for attr in attrs:
+    #         cq_infos = part_set.attrs_to_cqs[colnum][attr]
+    #         for cqid, proj in cq_infos:
+    #             if cqid in cur_queries:
+    #                 orig = cur_queries[cqid]
+    #                 new_query = Query.narrow_to_overlaps(db, orig, proj, top_n_overlaps)
+    #
+    #                 results[cqid] = new_query
+    #     return results
 
-                    results[cqid] = new_query
-        return results
-
-    @staticmethod
-    def narrow_to_overlaps(db, query, proj, overlaps):
-        query_str = query.query_str
-
-        attr = db.get_attr(proj)
-
-        # if any equality predicates in query for attr, skip
-        for pred in query.preds:
-            for val in pred[1]:
-                if pred[0] == 'eq' and db.get_attr(val) == attr:
-                    return query
-
-        # TODO: if there are range preds in query that are disjoint with overlaps, skip
-
-        limited_strs = []
-        for ov in overlaps:
-            if isinstance(ov, NumInterval):
-                limited_strs.append(u'({} >= {} AND {} <= {})'.format(proj, ov.min, proj, ov.max))
-            elif isinstance(ov, TextIntersect):
-                if ov.values is not None:
-                    ov.values = sorted(ov.values)
-                    limited_strs.append(u"{} IN ('{}')".format(proj, u"','".join([v.replace("'", "''") for v in ov.values])))
-
-        limited_strs = sorted(limited_strs)
-
-        if limited_strs:
-            if 'where' not in query_str.lower():
-                query_str += u' WHERE '
-            else:
-                query_str += u' AND '
-            limited_str = u" OR ".join(limited_strs)
-            query_str += u'({})'.format(limited_str)
-
-        return Query(query_str, query.projs, query.preds)
+    # @staticmethod
+    # def narrow_to_overlaps(db, query, proj, overlaps):
+    #     query_str = query.query_str
+    #
+    #     attr = db.get_attr(proj)
+    #
+    #     # if any equality predicates in query for attr, skip
+    #     for pred in query.preds:
+    #         for val in pred[1]:
+    #             if pred[0] == 'eq' and db.get_attr(val) == attr:
+    #                 return query
+    #
+    #     # TODO: if there are range preds in query that are disjoint with overlaps, skip
+    #
+    #     limited_strs = []
+    #     for ov in overlaps:
+    #         if isinstance(ov, NumInterval):
+    #             limited_strs.append(u'({} >= {} AND {} <= {})'.format(proj, ov.min, proj, ov.max))
+    #         elif isinstance(ov, TextIntersect):
+    #             if ov.values is not None:
+    #                 ov.values = sorted(ov.values)
+    #                 limited_strs.append(u"{} IN ('{}')".format(proj, u"','".join([v.replace("'", "''") for v in ov.values])))
+    #
+    #     limited_strs = sorted(limited_strs)
+    #
+    #     if limited_strs:
+    #         if 'where' not in query_str.lower():
+    #             query_str += u' WHERE '
+    #         else:
+    #             query_str += u' AND '
+    #         limited_str = u" OR ".join(limited_strs)
+    #         query_str += u'({})'.format(limited_str)
+    #
+    #     return Query(query_str, query.projs, query.preds)
