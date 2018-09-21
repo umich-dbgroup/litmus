@@ -267,14 +267,11 @@ class Partition(Base):
         if t:
             max_tuple = t[0]
             max_tuple_cqids = t[1]
-
-            start = time.time()
-            max_dist = self.dist(part_set.cqs, max_tuple, max_tuple_cqids)
-            dist_time = time.time() - start
+            max_dist = t[2]
 
             self.print_dist(max_tuple, max_dist, max_tuple_cqids)
 
-        comp_time = qig_time + partition_time + tuple_find_time + dist_time
+        comp_time = qig_time + partition_time + tuple_find_time
 
         result_meta = {
             'dist': max_dist,
