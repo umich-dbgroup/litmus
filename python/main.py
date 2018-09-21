@@ -16,7 +16,6 @@ from modules.database import Database
 from modules.find_spj import find_excludes
 from modules.mailer import Mailer
 from modules.parser import SQLParser
-from modules.text_intersect import TextIntersectDatabase
 
 def print_result(qid, result):
     table = BeautifulTable()
