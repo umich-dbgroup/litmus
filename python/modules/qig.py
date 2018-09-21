@@ -269,7 +269,7 @@ class QIGByRange(QIGByType):
         }
 
     def part_key(self, part):
-        types = part.meta['types']
+        types = tuple(part.meta['types'])
         if types not in self.by_type_counter:
             self.by_type_counter[types] = 0
 
