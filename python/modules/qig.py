@@ -218,7 +218,7 @@ class QIGByType(QIG):
     def find_maximal_cliques(self):
         return self.find_components()
 
-def QIGByRange(QIGByType):
+class QIGByRange(QIGByType):
     def __init__(self, db, cqs, aig):
         self.aig = aig
         self.by_type_counter = {}
