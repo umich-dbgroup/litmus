@@ -221,7 +221,10 @@ class Partition(Base):
 
         print('\n=== PARTITIONS ===')
         for k, v in part_set.parts.items():
-            print('{}, Count: {}'.format(k, len(v)))
+            if self.part_func == 'range':
+                print('{}, Count: {}, Intersects: {}'.format(k, len(v), [str(i) for i in v.meta['intersects']]))
+            else:
+                print('{}, Count: {}, Meta: {}'.format(k, len(v), v.meta))
         print()
 
         tuple_find_time = 0

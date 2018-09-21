@@ -16,6 +16,18 @@ class AttributeIntersect(object):
             self.min = min
             self.max = max
 
+    def __unicode__(self):
+        if self.type == 'text':
+            length = 0
+            if self.vals:
+                length = len(self.vals)
+            return 'text: {}'.format(length)
+        else:
+            return 'num: [{},{}]'.format(self.min, self.max)
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
+
 class Attribute(object):
     def __init__(self, name, type):
         self.rel = None

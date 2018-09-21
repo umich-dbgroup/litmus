@@ -243,9 +243,14 @@ class QIGByRange(QIGByType):
                     if vid == cqid:
                         continue
 
-                    # add edge only if type is same and they intersect
+                    # add edge only if type is same and they intersect (or they're the same attribute)
+                    same_attr = v.meta['attr'] == attr
                     e = self.aig.get_vertex(v.meta['attr']).get_edge(attr)
-                    if type == v.meta['type'] and e:
+                    if same_attr:
+                        posqig.add_edge(cqid, vid, {
+                            'intersect': None
+                        })
+                    elif type == v.meta['type'] and e:
                         posqig.add_edge(cqid, vid, {
                             'intersect': e.values
                         })
