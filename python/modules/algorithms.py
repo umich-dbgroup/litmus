@@ -204,7 +204,7 @@ class Partition(Base):
         elif self.part_func == 'range':
             qig = QIGByRange(self.db, cqs_parsed, self.aig)
         qig_time = time.time() - start
-        print("Done partitioning [{}s]".format(qig_time))
+        print("Done constructing QIG [{}s]".format(qig_time))
 
         print('Partitioning (maximal cliques + sort)...')
         start = time.time()
