@@ -259,7 +259,7 @@ def QIGByRange(QIGByType):
         size = len(v1.meta['attrs'])
 
         intersects = []
-        for pos in range(0, size)):
+        for pos in range(0, size):
             attrs = [self.get_vertex(cqid).meta['attrs'][pos] for cqid in cqids]
             intersects.append(self.aig.get_intersects(attrs[0].type, attrs))
 
