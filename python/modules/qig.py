@@ -283,4 +283,5 @@ class QIGByRange(QIGByType):
         return key
 
     def find_maximal_cliques(self):
+        # TODO: consider improving this if needed (e.g. split into connected components first using type, then run BronKerbosch on each component)
         return self.bron_kerbosch([], set(), set(self.get_cqids()), set())
