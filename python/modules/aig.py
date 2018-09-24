@@ -73,7 +73,7 @@ class AIG(object):
 
     def get_num_intersects(self, attrs):
         attrs = set(attrs)
-        
+
         largest_min = max(a.min for a in attrs)
         smallest_max = min(a.max for a in attrs)
 

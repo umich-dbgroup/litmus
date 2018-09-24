@@ -19,9 +19,10 @@ class AttributeIntersect(object):
     def __unicode__(self):
         if self.type == 'text':
             length = 0
-            if self.vals:
-                length = len(self.vals)
-            return 'text: {}'.format(length)
+            if self.vals is None:
+                return 'text: All'
+            else:
+                return 'text: {}'.format(len(self.vals))
         else:
             return 'num: [{},{}]'.format(self.min, self.max)
 
@@ -29,7 +30,13 @@ class AttributeIntersect(object):
         return unicode(self).encode('utf-8')
 
     def is_empty(self):
-        return self.type == 'text' and not self.vals
+        if self.type == 'text':
+            return self.vals is not None and len(self.vals) == 0
+        elif self.type == 'num':
+            return self.min is None or self.max is None
+
+    def is_all(self):
+        return self.type == 'text' and self.vals is None
 
 class Attribute(object):
     def __init__(self, name, type):

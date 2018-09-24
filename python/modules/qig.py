@@ -250,9 +250,12 @@ class QIGByRange(QIGByType):
                     same_attr = v.meta['attr'] == attr
                     e = self.aig.get_vertex(v.meta['attr']).get_edge(attr)
                     if same_attr:
-                        posqig.add_edge(cqid, vid, {
-                            'intersect': None
-                        })
+                        # attr.min cannot be none for numbers!
+                        if attr.type == 'text' or \
+                          (attr.type == 'num' and attr.min is not None):
+                            posqig.add_edge(cqid, vid, {
+                                'intersect': None
+                            })
                     elif type == v.meta['type'] and e:
                         posqig.add_edge(cqid, vid, {
                             'intersect': e.values
@@ -314,11 +317,37 @@ class QIGByRange(QIGByType):
             X = X | singleton
         return cliques
 
+    # def is_valid_clique(self, R):
+    #     if len(R) < 2:
+    #         return True
+    #
+    #     meta = self.get_meta(R)
+    #     print(R, [str(m) for m in meta['intersects']])
+    #     return all(not m.is_empty() for m in meta['intersects'])
+    #
+    # def mod_bron_kerbosch(self, cliques, R, P, X):
+    #     if not P and not X:
+    #         cliques.append(R)
+    #         return cliques
+    #
+    #     any_valid_cliques = False
+    #     for cqid in P:
+    #         singleton = set([cqid])
+    #         R_new = R | singleton
+    #         if self.is_valid_clique(R_new):
+    #             any_valid_cliques = True
+    #             N = set(self.get_vertex(cqid).get_adjacent())
+    #             self.mod_bron_kerbosch(cliques, R_new, P & N, X & N)
+    #             P = P - singleton
+    #             X = X | singleton
+    #     return cliques
+
     def find_maximal_cliques(self):
         results = []
         components = self.find_type_components()
 
         for c in components:
+            # cliques = self.mod_bron_kerbosch([], set(), c, set())
             cliques = self.tomita([], set(), c, set())
             results.extend(cliques)
 
