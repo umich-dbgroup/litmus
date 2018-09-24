@@ -62,8 +62,8 @@ def execute_mode(mode, db, parser, qid, task, part_func, aig):
         algorithm = Exhaustive(db, parser)
     elif mode == 'partition':
         algorithm = Partition(db, parser, part_func=part_func, aig=aig)
-    # elif mode == 'overlap':
-    #     algorithm = Overlap(db, parser, tidb)
+    elif mode == 'constrain':
+        algorithm = Partition(db, parser, part_func=part_func, aig=aig, constrain=True)
 
     cand_cqs = task['cqs'].copy()
     result_metas = []
@@ -127,10 +127,10 @@ def save_results(results, path):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['random', 'exhaustive', 'partition'])
+    argparser.add_argument('mode', choices=['random', 'exhaustive', 'partition', 'constrain'])
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--data_dir', default='../data')
-    argparser.add_argument('--part_func', choices=['type', 'range'], default='type')
+    argparser.add_argument('--part_func', choices=['type', 'range'], default='range')
     argparser.add_argument('--email')
     args = argparser.parse_args()
 
@@ -142,7 +142,8 @@ def main():
 
     # only load aig if mode is partition
     aig = None
-    if args.mode == 'partition' and args.part_func == 'range':
+    if args.mode == 'constrain' \
+      or (args.mode == 'partition' and args.part_func == 'range'):
         aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
     tasks = load_tasks(args.data_dir, args.db)

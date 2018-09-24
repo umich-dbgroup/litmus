@@ -15,12 +15,13 @@ from qig import QIGByType, QIGByRange
 TOP_DISTS = 5
 
 class Base(object):
-    def __init__(self, db, parser=None, aig=None, part_func=None, part_sort=None):
+    def __init__(self, db, parser=None, aig=None, part_func=None, part_sort=None, constrain=False):
         self.db = db
         self.parser = parser
         self.aig = aig
         self.part_func = part_func
         self.part_sort = part_sort
+        self.constrain = constrain
 
     def execute(self, cqs):
         result_meta = {
@@ -36,7 +37,7 @@ class Base(object):
         }
         return None, None, result_meta
 
-    def run_cqs(self, cqs, msg_append=''):
+    def run_cqs(self, cqs, msg_append='', part=None):
         valid_cqs = []
         timed_out = []
         sql_errors = []
@@ -48,9 +49,12 @@ class Base(object):
         start = time.time()
         for cqid, cq in cqs.items():
             try:
-                # unparsed vs. parsed
-                query_str = cq
-                if isinstance(cq, Query):
+                if not isinstance(cq, Query):
+                    raise Exception('CQ should be a Query object.')
+
+                if part:
+                    query_str = part.constrain_query(cq)
+                else:
                     query_str = cq.query_str
 
                 cq_tuples, was_cached = self.db.execute(query_str)
@@ -68,8 +72,8 @@ class Base(object):
                 if str(e).startswith('Timeout'):
                     timed_out.append(cqid)
                 else:
-                    print(query_str.encode('utf-8')[:1000])
                     print(traceback.format_exc())
+                    print(query_str.encode('utf-8')[:1000])
                     sql_errors.append(cqid)
             bar.update(1)
         bar.close()
@@ -194,6 +198,12 @@ class Partition(Base):
             return (t, cqids, d)
         return None
 
+    def run_part(self, part, constrain=False):
+        if constrain:
+            return self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']), part=part)
+        else:
+            return self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']))
+
     def execute(self, cqs):
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
 
@@ -230,7 +240,7 @@ class Partition(Base):
         tuple_find_time = 0
         t = None
         for part in part_set:
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']))
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part, constrain=self.constrain)
             part_set.update_executed(part.cqs.keys())
 
             total_exec_cqs += len(part.cqs)

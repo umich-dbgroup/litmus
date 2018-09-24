@@ -75,37 +75,8 @@ class QIG(object):
             X = X | singleton
         return cliques
 
-    def find_pivot(self, P, X):
-        max_size = 0
-        max_cqid = None
-        max_adj = None
-
-        for cqid in P | X:
-            adj = set(self.get_vertex(cqid).get_adjacent())
-            size = len(P & adj)
-
-            if size >= max_size:
-                max_size = size
-                max_cqid = cqid
-                max_adj = adj
-
-        return max_cqid, max_adj
-
-    def tomita(self, cliques, R, P, X):
-        if not P and not X:
-            cliques.append(R)
-            return cliques
-        u, u_adj = self.find_pivot(P, X)
-        for cqid in P - u_adj:
-            singleton = set([cqid])
-            N = set(self.get_vertex(cqid).get_adjacent())
-            self.tomita(cliques, R | singleton, P & N, X & N)
-            P = P - singleton
-            X = X | singleton
-        return cliques
-
     def find_maximal_cliques(self):
-        return self.tomita([], set(), set(self.get_cqids()), set())
+        return NotImplementedError
 
     def find_partition_set(self):
         cliques = self.find_maximal_cliques()
@@ -314,12 +285,41 @@ class QIGByRange(QIGByType):
         self.by_type_counter[types] += 1
         return key
 
+    def find_pivot(self, P, X):
+        max_size = 0
+        max_cqid = None
+        max_adj = None
+
+        for cqid in P | X:
+            adj = set(self.get_vertex(cqid).get_adjacent())
+            size = len(P & adj)
+
+            if size >= max_size:
+                max_size = size
+                max_cqid = cqid
+                max_adj = adj
+
+        return max_cqid, max_adj
+
+    def tomita(self, cliques, R, P, X):
+        if not P and not X:
+            cliques.append(R)
+            return cliques
+        u, u_adj = self.find_pivot(P, X)
+        for cqid in P - u_adj:
+            singleton = set([cqid])
+            N = set(self.get_vertex(cqid).get_adjacent())
+            self.tomita(cliques, R | singleton, P & N, X & N)
+            P = P - singleton
+            X = X | singleton
+        return cliques
+
     def find_maximal_cliques(self):
-        cliques = []
+        results = []
         components = self.find_type_components()
 
         for c in components:
-            component_cliques = self.tomita([], set(), c, set())
-            cliques.extend(component_cliques)
+            cliques = self.tomita([], set(), c, set())
+            results.extend(cliques)
 
-        return cliques
+        return results

@@ -28,6 +28,9 @@ class AttributeIntersect(object):
     def __str__(self):
         return unicode(self).encode('utf-8')
 
+    def is_empty(self):
+        return self.type == 'text' and not self.vals
+
 class Attribute(object):
     def __init__(self, name, type):
         self.rel = None
