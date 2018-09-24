@@ -11,7 +11,8 @@ class AttributeIntersect(object):
     def __init__(self, type, vals=None, min=None, max=None):
         self.type = type
         if type == 'text':
-            self.vals = vals
+            # sort so query cache triggers
+            self.vals = sorted(vals)
         elif type == 'num':
             self.min = min
             self.max = max
