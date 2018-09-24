@@ -75,8 +75,37 @@ class QIG(object):
             X = X | singleton
         return cliques
 
+    def find_pivot(self, P, X):
+        max_size = 0
+        max_cqid = None
+        max_adj = None
+
+        for cqid in P | X:
+            adj = set(self.get_vertex(cqid).get_adjacent())
+            size = len(P & adj)
+
+            if size >= max_size:
+                max_size = size
+                max_cqid = cqid
+                max_adj = adj
+
+        return max_cqid, max_adj
+
+    def tomita(self, cliques, R, P, X):
+        if not P and not X:
+            cliques.append(R)
+            return cliques
+        u, u_adj = self.find_pivot(P, X)
+        for cqid in P - u_adj:
+            singleton = set([cqid])
+            N = set(self.get_vertex(cqid).get_adjacent())
+            self.tomita(cliques, R | singleton, P & N, X & N)
+            P = P - singleton
+            X = X | singleton
+        return cliques
+
     def find_maximal_cliques(self):
-        return self.bron_kerbosch([], set(), set(self.get_cqids()), set())
+        return self.tomita([], set(), set(self.get_cqids()), set())
 
     def find_partition_set(self):
         cliques = self.find_maximal_cliques()
@@ -90,6 +119,14 @@ class QIG(object):
             parts[self.part_key(part)] = part
 
         return PartSet(parts, self.cqs)
+
+    def dot(self):
+        stmts = []
+        cqids = self.get_cqids()
+        for i, cqid in enumerate(cqids):
+            for j in range(i+1, len(cqids)):
+                stmts.append('{} -- {}'.format(cqid, cqids[j]))
+        return 'graph {{ {} }}'.format('; '.join(stmts))
 
 class QIGVertex(object):
     def __init__(self, cqid, meta):
@@ -197,26 +234,21 @@ class QIGByType(QIG):
         return v1.meta
 
     def part_key(self, part):
-        return part.meta['types']
+        return tuple(part.meta['types'])
 
-    def find_components(self):
-        components = []
-        found = set()
+    def find_type_components(self):
+        components = {}
         for cqid in self.get_cqids():
-            if cqid in found:
-                continue
+            types = tuple(self.get_vertex(cqid).meta['types'])
+            if types not in components:
+                components[types] = set()
 
-            component = set()
-            component.add(cqid)
-            component.update(self.get_vertex(cqid).get_adjacent())
+            components[types].add(cqid)
 
-            components.append(component)
-            found.update(component)
-
-        return components
+        return components.values()
 
     def find_maximal_cliques(self):
-        return self.find_components()
+        return self.find_type_components()
 
 class QIGByRange(QIGByType):
     def __init__(self, db, cqs, aig):
@@ -283,5 +315,11 @@ class QIGByRange(QIGByType):
         return key
 
     def find_maximal_cliques(self):
-        # TODO: consider improving this if needed (e.g. split into connected components first using type, then run BronKerbosch on each component)
-        return self.bron_kerbosch([], set(), set(self.get_cqids()), set())
+        cliques = []
+        components = self.find_type_components()
+
+        for c in components:
+            component_cliques = self.tomita([], set(), c, set())
+            cliques.extend(component_cliques)
+
+        return cliques

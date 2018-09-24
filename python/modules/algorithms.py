@@ -224,7 +224,7 @@ class Partition(Base):
             if self.part_func == 'range':
                 print('{}, Count: {}, Intersects: {}'.format(k, len(v), [str(i) for i in v.meta['intersects']]))
             else:
-                print('{}, Count: {}, Meta: {}'.format(k, len(v), v.meta))
+                print('{}, Count: {}'.format(k, len(v)))
         print()
 
         tuple_find_time = 0
