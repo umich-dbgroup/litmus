@@ -27,7 +27,9 @@ class SQLParser(object):
 
     def parse_one(self, cqid, query_str):
         if query_str in self.cache:
-            return self.cache[query_str], True
+            cached = self.cache[query_str]
+            cached.cqid = cqid
+            return cached, True
 
         parsed = parse(query_str)
 
