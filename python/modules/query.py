@@ -7,12 +7,20 @@ class Query(object):
         self.projs = projs
         self.preds = preds
 
-    def constrain(self, qig):
-        query_str = self.query_str
+    def constrained(self):
+        if self.constraints is None:
+            return self.query_str
+        else:
+            return self.constrained_query_str
 
+    def unconstrain(self):
+        self.constraints = None
+
+    def constrain(self, qig):
         v = qig.get_vertex(self.cqid)
 
-        constraints = []
+        self.constraints = []
+        str_constraints = []
 
         for pos, proj in enumerate(self.projs):
             pos_type = v.meta['types'][pos]
@@ -25,7 +33,7 @@ class Query(object):
 
                 if not intersect.is_empty():
                     if pos_type == 'text' and intersect.is_all():
-                        pos_union = None
+                        pos_union = intersect
                         break
 
                     if pos_union is None:
@@ -34,20 +42,36 @@ class Query(object):
 
                     pos_union.union(intersect)
 
-            if pos_union:
-                if pos_type == 'num':
-                    constraints.append(u'({} >= {} AND {} <= {})'.format(proj, pos_union.min, proj, pos_union.max))
-                elif pos_type == 'text':
-                    constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([v.replace("'", "''") for v in pos_union.vals])))
+            self.constraints.append(pos_union)
+            if pos_type == 'num':
+                str_constraints.append(u'({} >= {} AND {} <= {})'.format(proj, pos_union.min, proj, pos_union.max))
+            elif pos_type == 'text' and not pos_union.is_all():
+                str_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([v.replace("'", "''") for v in pos_union.vals])))
 
-        if constraints:
-            if 'where' not in query_str.lower():
-                query_str += u' WHERE '
+        self.constrained_query_str = self.query_str
+        if str_constraints:
+            if 'where' not in self.constrained_query_str.lower():
+                self.constrained_query_str += u' WHERE '
             else:
-                query_str += u' AND '
+                self.constrained_query_str += u' AND '
 
-            query_str += u' AND '.join(constraints)
-        return query_str
+            self.constrained_query_str += u' AND '.join(str_constraints)
+
+    def within_constraints(self, constraints):
+        # if unconstrained, then this one is def within
+        if constraints is None:
+            return True
+
+        # if other is constrained and this is not, it is not within
+        if self.constraints is None:
+            return False
+
+        # otherwise, cycle through each constraint
+        for i, c in enumerate(constraints):
+            if not self.constraints[i].within(c):
+                return False
+
+        return True
 
     @staticmethod
     def tuple_in_query(db, t, query):

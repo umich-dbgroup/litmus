@@ -53,11 +53,11 @@ class Base(object):
                     raise Exception('CQ should be a Query object.')
 
                 if qig:
-                    query_str = cq.constrain(qig)
+                    cq.constrain(qig)
                 else:
-                    query_str = cq.query_str
+                    cq.unconstrain()
 
-                cq_tuples, was_cached = self.db.execute(query_str)
+                cq_tuples, was_cached = self.db.execute(cq)
                 if was_cached:
                     cached.append(cqid)
 
@@ -198,11 +198,11 @@ class Partition(Base):
             return (t, cqids, d)
         return None
 
-    def run_part(self, part, constrain=False, qig=None):
+    def run_part(self, part_key, part, constrain=False, qig=None):
         if constrain:
-            return self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']), qig=qig)
+            return self.run_cqs(part.cqs, msg_append=' ' + part_key, qig=qig)
         else:
-            return self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']))
+            return self.run_cqs(part.cqs, msg_append=' ' + part_key)
 
     def print_partitions(self, part_set):
         print('\n=== PARTITIONS ===')
@@ -242,8 +242,8 @@ class Partition(Base):
 
         tuple_find_time = 0
         t = None
-        for part in part_set:
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part, constrain=self.constrain, qig=qig)
+        for part_key, part in part_set.parts.items():
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part_key, part, constrain=self.constrain, qig=qig)
             part_set.update_executed(part.cqs.keys())
 
             total_exec_cqs += len(part.cqs)

@@ -53,6 +53,18 @@ class AttributeIntersect(object):
         elif self.type == 'text':
             return AttributeIntersect('text', vals=self.vals + other.vals)
 
+    def within(self, other):
+        if other.is_all() or self.is_empty():
+            return True
+
+        if self.is_all() or other.is_empty():
+            return False
+
+        if self.type == 'num':
+            return other.min <= self.min and other.max >= self.max
+        elif self.type == 'text':
+            return set(self.vals) <= set(other.vals)
+
 class EmptyAttributeIntersect(AttributeIntersect):
     def __init__(self, type):
         self.type = type
@@ -358,20 +370,22 @@ class Database(object):
     def get_relations(self):
         return self.relations
 
-    def execute(self, query):
+    def execute(self, cq):
         if not hasattr(self, 'query_cache'):
             self.query_cache = {}
 
-        if query in self.query_cache:
-            if self.query_cache[query] is None:
+        if cq.query_str in self.query_cache:
+            cached = self.query_cache[cq.query_str]
+            if 'timeout' in cached:
                 raise Exception('Timeout: Query timed out.')
-            else:
-                return self.query_cache[query], True
+            elif 'constraints' in cached and \
+              cq.within_constraints(cached['constraints']):
+                return cached['results'], True
 
         cursor = self.cursor()
 
         try:
-            cursor.execute(query)
+            cursor.execute(cq.constrained())
 
             query_tuples = set()
             for result in cursor:
@@ -382,11 +396,14 @@ class Database(object):
                 query_tuples.add(result)
             cursor.close()
 
-            self.query_cache[query] = query_tuples
+            self.query_cache[cq.query_str] = {
+                'constraints': cq.constraints,
+                'results': query_tuples
+            }
             return query_tuples, False
         except Exception as e:
             cursor.close()
             if str(e).startswith('3024'):
-                self.query_cache[query] = None
+                self.query_cache[cq.query_str] = { 'timeout': True }
                 raise Exception('Timeout: Query timed out.')
             raise e
