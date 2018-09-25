@@ -8,7 +8,7 @@ import traceback
 from collections import OrderedDict
 from tqdm import tqdm
 
-from parser import Query
+from query import Query
 from partitions import PartSet
 from qig import QIGByType, QIGByRange
 
