@@ -132,7 +132,7 @@ def save_results(results, out_dir, prefix):
     while os.path.exists(out_path):
         idx += 1
         out_path = os.path.join(out_dir, '{}_{}.pkl'.format(prefix, idx))
-    pickle.dump(results, open(prefix, 'wb'))
+    pickle.dump(results, open(out_path, 'wb'))
 
 def main():
     argparser = argparse.ArgumentParser()
