@@ -24,13 +24,13 @@ class Query(object):
                 intersect = e.meta[pos]['intersect']
 
                 if not intersect.is_empty():
-                    if pos_union is None:
-                        pos_union = intersect
-                        continue
-
                     if pos_type == 'text' and intersect.is_all():
                         pos_union = None
                         break
+
+                    if pos_union is None:
+                        pos_union = intersect
+                        continue
 
                     pos_union.union(intersect)
 
