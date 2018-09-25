@@ -46,7 +46,7 @@ class Query(object):
             if pos_type == 'num':
                 str_constraints.append(u'({} >= {} AND {} <= {})'.format(proj, pos_union.min, proj, pos_union.max))
             elif pos_type == 'text' and not pos_union.is_all():
-                str_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([v.replace("'", "''") for v in pos_union.vals])))
+                str_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([val.replace("'", "''") for val in pos_union.vals])))
 
         self.constrained_query_str = self.query_str
         if str_constraints:
