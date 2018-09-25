@@ -1,5 +1,7 @@
 import re
 
+from database import AttributeIntersect
+
 class Query(object):
     def __init__(self, cqid, query_str, projs, preds):
         self.cqid = cqid
@@ -24,7 +26,7 @@ class Query(object):
 
         for pos, proj in enumerate(self.projs):
             pos_type = v.meta['types'][pos]
-            pos_union = None
+            pos_union = AttributeIntersect(pos_type)
 
             for adj in v.get_adjacent():
                 e = v.get_edge(adj)
@@ -36,17 +38,14 @@ class Query(object):
                         pos_union = intersect
                         break
 
-                    if pos_union is None:
-                        pos_union = intersect
-                        continue
-
                     pos_union.union(intersect)
 
             self.constraints.append(pos_union)
-            if pos_type == 'num':
-                str_constraints.append(u'({} >= {} AND {} <= {})'.format(proj, pos_union.min, proj, pos_union.max))
-            elif pos_type == 'text' and not pos_union.is_all():
-                str_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([val.replace("'", "''") for val in pos_union.vals])))
+            if not pos_union.is_empty():
+                if pos_type == 'num':
+                    str_constraints.append(u'({} >= {} AND {} <= {})'.format(proj, pos_union.min, proj, pos_union.max))
+                elif pos_type == 'text' and not pos_union.is_all():
+                    str_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([val.replace("'", "''") for val in pos_union.vals])))
 
         self.constrained_query_str = self.query_str
         if str_constraints:

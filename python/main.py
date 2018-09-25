@@ -84,12 +84,14 @@ def execute_mode(mode, db, parser, qid, task, part_func, aig):
     if iters is None or len(cand_cqs) == 0:
         # if couldn't find tuple or no cand cqs left
         iters = None
-        print('Failed to find intended query(s).')
+        print('FAILED to find intended query(s).')
     elif len(cand_cqs) == len(task['ans']) and all(k in task['ans'] for k in cand_cqs.keys()):
-        print('Succeeded in finding intended query(s).')
-        print('Total Iterations: {}'.format(iters))
+        print('SUCCESS in finding intended query(s).')
+        print('TOTAL ITERATIONS: {}'.format(iters))
     else:
         raise Exception('Failed in finding intended query(s).')
+
+    print()
 
     result = {
         'total_cqs': len(task['cqs']),
@@ -121,8 +123,16 @@ def load_cache(path):
     else:
         return {}
 
-def save_results(results, path):
+def save_cache(results, path):
     pickle.dump(results, open(path, 'wb'))
+
+def save_results(results, out_dir, prefix):
+    idx = 0
+    out_path = os.path.join(out_dir, '{}_{}.pkl'.format(prefix, idx))
+    while os.path.exists(out_path):
+        idx += 1
+        out_path = os.path.join(out_dir, '{}_{}.pkl'.format(prefix, idx))
+    pickle.dump(results, open(prefix, 'wb'))
 
 def main():
     argparser = argparse.ArgumentParser()
@@ -149,11 +159,10 @@ def main():
     tasks = load_tasks(args.data_dir, args.db)
 
     if args.mode == 'partition':
-        file_name = '{}_{}_{}.pkl'.format(args.db, args.mode, args.part_func)
+        file_prefix = '{}_{}_{}'.format(args.db, args.mode, args.part_func)
     else:
-        file_name = '{}_{}.pkl'.format(args.db, args.mode)
-    cache_path = os.path.join(config.get('main', 'cache_dir'), file_name)
-    out_path = os.path.join(config.get('main', 'results_dir'), file_name)
+        file_prefix = '{}_{}'.format(args.db, args.mode)
+    cache_path = os.path.join(config.get('main', 'cache_dir'), file_prefix + '.pkl')
     results = load_cache(cache_path)
 
     # load qids to exclude
@@ -166,7 +175,7 @@ def main():
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
                 results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.part_func, aig)
-                save_results(results, cache_path)
+                save_cache(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
             # if executing all queries
@@ -179,11 +188,11 @@ def main():
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
                     results[qid] = execute_mode(args.mode, db, parser, qid, task, args.part_func, aig)
-                    save_results(results, cache_path)
+                    save_cache(results, cache_path)
                 # print_result(qid, results[qid])
 
             # save all results when finished
-            save_results(results, out_path)
+            save_results(results, config.get('main', 'results_dir'), file_prefix)
         if args.email is not None:
             mailer = Mailer()
             mailer.send(args.email, 'Done {}'.format(args.db), 'Done')

@@ -11,7 +11,7 @@ class PartSet(object):
 
     # returns iterator in sorted order
     def __iter__(self):
-        return iter(self.parts.values())
+        return iter(self.parts.items())
 
     def __getitem__(self, index):
         return self.parts.items()[index]

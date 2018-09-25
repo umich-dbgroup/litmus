@@ -8,19 +8,13 @@ import time
 import mysql.connector
 
 class AttributeIntersect(object):
-    def __init__(self, type, vals=None, min=None, max=None):
+    def __init__(self, type, vals=[], min=None, max=None):
         self.type = type
         if type == 'text':
-            if len(vals) == 0:
-                self = EmptyAttributeIntersect('text')
-            else:
-                self.vals = sorted(vals)
+            self.vals = sorted(vals)
         elif type == 'num':
-            if min is None or max is None:
-                self = EmptyAttributeIntersect('num')
-            else:
-                self.min = min
-                self.max = max
+            self.min = min
+            self.max = max
 
     def __unicode__(self):
         if self.type == 'text':
@@ -32,7 +26,10 @@ class AttributeIntersect(object):
         return unicode(self).encode('utf-8')
 
     def is_empty(self):
-        return isinstance(self, EmptyAttributeIntersect)
+        if self.type == 'text':
+            return len(self.vals) == 0
+        elif self.type == 'num':
+            return self.min is None or self.max is None
 
     def is_all(self):
         return isinstance(self, AllAttributeIntersect)
@@ -41,6 +38,11 @@ class AttributeIntersect(object):
         if self.is_all():
             return self
         elif other.is_all():
+            return other
+
+        if other.is_empty():
+            return self
+        elif self.is_empty():
             return other
 
         if self.type != other.type:
@@ -65,22 +67,6 @@ class AttributeIntersect(object):
         elif self.type == 'text':
             return set(self.vals) <= set(other.vals)
 
-class EmptyAttributeIntersect(AttributeIntersect):
-    def __init__(self, type):
-        self.type = type
-        self.vals = None
-        self.min = None
-        self.max = None
-
-    def is_all(self):
-        return False
-
-    def is_empty(self):
-        return True
-
-    def __unicode__(self):
-        return '{}: EMPTY'.format(self.type)
-
 # case that all values intersect (e.g. attribute is intersected with self)
 class AllAttributeIntersect(AttributeIntersect):
     def __init__(self, type):
@@ -91,6 +77,9 @@ class AllAttributeIntersect(AttributeIntersect):
 
     def is_all(self):
         return True
+
+    def is_empty(self):
+        return False
 
     def __unicode__(self):
         return '{}: ALL'.format(self.type)

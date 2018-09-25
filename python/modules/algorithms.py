@@ -154,7 +154,7 @@ class Partition(Base):
 
         i = part_set.index(part)
         for j in range(i+1, len(part_set)):
-            max_dist = self.part_max_dist(part_set, part_set[j])
+            max_dist = self.part_max_dist(part_set, part_set[j][1])
             if max_dist > future_part_max_dist:
                 future_part_max_dist = max_dist
         return future_part_max_dist
@@ -242,7 +242,7 @@ class Partition(Base):
 
         tuple_find_time = 0
         t = None
-        for part_key, part in part_set.parts.items():
+        for part_key, part in part_set:
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part_key, part, constrain=self.constrain, qig=qig)
             part_set.update_executed(part.cqs.keys())
 
