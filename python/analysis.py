@@ -114,13 +114,22 @@ def main():
     failed = sum(i is None for i in stats['iters'])
 
     table = BeautifulTable()
-    table.column_headers = ['METRIC', 'VALUE']
-    table.column_alignments['METRIC'] = BeautifulTable.ALIGN_LEFT
+    table.column_headers = ['TASK INFO', 'VALUE']
+    table.column_alignments['TASK INFO'] = BeautifulTable.ALIGN_LEFT
     table.column_alignments['VALUE'] = BeautifulTable.ALIGN_RIGHT
     table.row_separator_char = ''
     table.append_row(['Total Results', '{}'.format(stats['total'])])
     table.append_row(['Analyzed Results', '{}'.format(stats['analyzed'])])
-    table.append_row(['Avg. Total CQ #', '{:.3f}'.format(np.mean(stats['cq_counts']))])
+    table.append_row(['Min Total CQ #', '{:.3f}'.format(np.min(stats['cq_counts']))])
+    table.append_row(['Mean Total CQ #', '{:.3f}'.format(np.mean(stats['cq_counts']))])
+    table.append_row(['Max Total CQ #', '{:.3f}'.format(np.max(stats['cq_counts']))])
+    print(table)
+
+    table = BeautifulTable()
+    table.column_headers = ['ITER INFO', 'VALUE']
+    table.column_alignments['ITER INFO'] = BeautifulTable.ALIGN_LEFT
+    table.column_alignments['VALUE'] = BeautifulTable.ALIGN_RIGHT
+    table.row_separator_char = ''
     table.append_row(['# Tasks <= 0 Iter (%)', '{} ({:.2f}%)'.format(iters_0, iters_0 / stats['analyzed'] * 100)])
     table.append_row(['# Tasks <= 1 Iter (%)', '{} ({:.2f}%)'.format(iters_1, iters_1 / stats['analyzed'] * 100)])
     table.append_row(['# Tasks <= 2 Iter (%)', '{} ({:.2f}%)'.format(iters_2, iters_2 / stats['analyzed'] * 100)])
@@ -136,10 +145,19 @@ def main():
     table.append_row(['Max # Iters', '{:.3f}'.format(np.max(stats['iters']))])
     table.append_row(['Std. Dev. # Iters', '{:.3f}'.format(np.std(stats['iters']))])
     table.append_row(['Mean # Iters', '{:.3f}'.format(np.mean(stats['iters']))])
-    table.append_row(['Avg. Query Time', '{:.3f}s'.format(np.mean(stats['query_times']))])
-    table.append_row(['Avg. Computation Time', '{:.3f}s'.format(np.mean(stats['comp_times']))])
-    table.append_row(['Avg. Total Time', '{:.3f}s'.format(np.mean(stats['total_times']))])
-    table.append_row(['Avg. Total Time/Iter', '{:.3f}s'.format(np.mean(stats['times_per_iter']))])
+    print(table)
+
+    table = BeautifulTable()
+    table.column_headers = ['TIME INFO', 'VALUE']
+    table.column_alignments['TIME INFO'] = BeautifulTable.ALIGN_LEFT
+    table.column_alignments['VALUE'] = BeautifulTable.ALIGN_RIGHT
+    table.row_separator_char = ''
+    table.append_row(['Mean Query Time', '{:.3f}s'.format(np.mean(stats['query_times']))])
+    table.append_row(['Mean Computation Time', '{:.3f}s'.format(np.mean(stats['comp_times']))])
+    table.append_row(['Mean Total Time', '{:.3f}s'.format(np.mean(stats['total_times']))])
+    table.append_row(['Max Total Time', '{:.3f}s'.format(np.max(stats['total_times']))])
+    table.append_row(['Mean Total Time/Iter', '{:.3f}s'.format(np.mean(stats['times_per_iter']))])
+    table.append_row(['Max Total Time/Iter', '{:.3f}s'.format(np.max(stats['times_per_iter']))])
     print(table)
 
 if __name__ == '__main__':
