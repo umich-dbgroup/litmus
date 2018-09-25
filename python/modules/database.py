@@ -11,22 +11,14 @@ class AttributeIntersect(object):
     def __init__(self, type, vals=None, min=None, max=None):
         self.type = type
         if type == 'text':
-            if vals is not None:
-                # sort so query cache triggers
-                self.vals = sorted(vals)
-            else:
-                self.vals = None
+            self.vals = sorted(vals)
         elif type == 'num':
             self.min = min
             self.max = max
 
     def __unicode__(self):
         if self.type == 'text':
-            length = 0
-            if self.vals is None:
-                return 'text: All'
-            else:
-                return 'text: {}'.format(len(self.vals))
+            return 'text: {}'.format(len(self.vals))
         else:
             return 'num: [{},{}]'.format(self.min, self.max)
 
@@ -35,12 +27,23 @@ class AttributeIntersect(object):
 
     def is_empty(self):
         if self.type == 'text':
-            return self.vals is not None and len(self.vals) == 0
+            return not self.is_all() and len(self.vals) == 0
         elif self.type == 'num':
             return self.min is None or self.max is None
 
     def is_all(self):
-        return self.type == 'text' and self.vals is None
+        return isinstance(self, AllAttributeIntersect)
+
+# case that all values intersect (e.g. attribute is intersected with self)
+class AllAttributeIntersect(AttributeIntersect):
+    def __init__(self, type):
+        self.type = type
+        self.vals = None
+        self.min = None
+        self.max = None
+
+    def is_all(self):
+        return True
 
 class Attribute(object):
     def __init__(self, name, type):

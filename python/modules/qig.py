@@ -1,3 +1,4 @@
+from database import AttributeIntersect, AllAttributeIntersect
 from partitions import PartSet, SinglePart
 
 # Query Intersection Graph
@@ -250,33 +251,36 @@ class QIGByRange(QIGByType):
                     same_attr = v.meta['attr'] == attr
                     e = self.aig.get_vertex(v.meta['attr']).get_edge(attr)
                     if same_attr:
-                        # attr.min cannot be none for numbers!
-                        if attr.type == 'text' or \
-                          (attr.type == 'num' and attr.min is not None):
+                        if attr.type == 'text':
                             posqig.add_edge(cqid, vid, {
-                                'intersect': None
+                                'intersect': AllAttributeIntersect('text')
+                            })
+                        elif attr.type == 'num' and attr.min is not None:
+                            posqig.add_edge(cqid, vid, {
+                                'intersect': AttributeIntersect('num', min=attr.min, max=attr.max)
                             })
                     elif type == v.meta['type'] and e:
                         posqig.add_edge(cqid, vid, {
-                            'intersect': e.values
+                            'intersect': e.intersect
                         })
 
     def get_meta(self, cqids):
         if not cqids:
             raise Exception('Cannot get meta for empty cqids set.')
 
-        cqids = list(cqids)
+        cqids = sorted(list(cqids))
         v1 = self.get_vertex(cqids[0])
-        size = len(v1.meta['attrs'])
-
-        intersects = []
-        for pos in range(0, size):
-            attrs = [self.get_vertex(cqid).meta['attrs'][pos] for cqid in cqids]
-            intersects.append(self.aig.get_intersects(attrs[0].type, attrs))
+        # size = len(v1.meta['attrs'])
+        #
+        # intersects = []
+        # for pos in range(0, size):
+        #     attrs = [self.get_vertex(cqid).meta['attrs'][pos] for cqid in cqids]
+        #     intersects.append(self.aig.get_intersects(attrs[0].type, attrs))
 
         return {
-            'intersects': intersects,
-            'types': v1.meta['types']
+            # 'intersects': intersects,
+            'types': v1.meta['types'],
+            'cqids': cqids
         }
 
     def part_key(self, part):
@@ -317,37 +321,11 @@ class QIGByRange(QIGByType):
             X = X | singleton
         return cliques
 
-    # def is_valid_clique(self, R):
-    #     if len(R) < 2:
-    #         return True
-    #
-    #     meta = self.get_meta(R)
-    #     print(R, [str(m) for m in meta['intersects']])
-    #     return all(not m.is_empty() for m in meta['intersects'])
-    #
-    # def mod_bron_kerbosch(self, cliques, R, P, X):
-    #     if not P and not X:
-    #         cliques.append(R)
-    #         return cliques
-    #
-    #     any_valid_cliques = False
-    #     for cqid in P:
-    #         singleton = set([cqid])
-    #         R_new = R | singleton
-    #         if self.is_valid_clique(R_new):
-    #             any_valid_cliques = True
-    #             N = set(self.get_vertex(cqid).get_adjacent())
-    #             self.mod_bron_kerbosch(cliques, R_new, P & N, X & N)
-    #             P = P - singleton
-    #             X = X | singleton
-    #     return cliques
-
     def find_maximal_cliques(self):
         results = []
         components = self.find_type_components()
 
         for c in components:
-            # cliques = self.mod_bron_kerbosch([], set(), c, set())
             cliques = self.tomita([], set(), c, set())
             results.extend(cliques)
 

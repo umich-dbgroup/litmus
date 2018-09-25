@@ -9,10 +9,6 @@ import traceback
 from moz_sql_parser import parse
 from tqdm import tqdm
 
-# from overlap_types import NumInterval
-# from text_intersect import TextIntersect
-# from partition_set import ProjPartition
-
 class SQLParser(object):
     def __init__(self, cache_path):
         self.cache_path = cache_path
@@ -28,7 +24,7 @@ class SQLParser(object):
         self.cache[query.query_str] = query
         pickle.dump(self.cache, open(self.cache_path, 'wb'))
 
-    def parse_one(self, query_str):
+    def parse_one(self, cqid, query_str):
         if query_str in self.cache:
             return self.cache[query_str], True
 
@@ -48,7 +44,7 @@ class SQLParser(object):
             for op, vals in parsed['where'].items():
                 preds.append((op, vals))
 
-        query = Query(query_str, projs, preds)
+        query = Query(cqid, query_str, projs, preds)
 
         self.update_cache(query)
         return query, False
@@ -62,16 +58,16 @@ class SQLParser(object):
         queries = {}
         from_cache = 0
         errors = []
-        for query_id, query_str in query_strs.items():
+        for cqid, query_str in query_strs.items():
             try:
-                query, cached = self.parse_one(query_str)
+                query, cached = self.parse_one(cqid, query_str)
                 if cached:
                     from_cache += 1
-                queries[query_id] = query
+                queries[cqid] = query
             except Exception as e:
                 print(query_str)
                 print(traceback.format_exc())
-                errors.append(query_id)
+                errors.append(cqid)
             bar.update(1)
         bar.close()
         parse_time = time.time() - start
@@ -81,10 +77,48 @@ class SQLParser(object):
         return queries, parse_time
 
 class Query(object):
-    def __init__(self, query_str, projs, preds):
+    def __init__(self, cqid, query_str, projs, preds):
+        self.cqid = cqid
         self.query_str = query_str
         self.projs = projs
         self.preds = preds
+
+    def constrain(self, qig):
+        query_str = self.query_str
+
+        v = qig.get_vertex(self.cqid)
+
+        constraints = []
+
+        for pos, proj in enumerate(self.projs):
+            pos_constraints = []
+            for adj in v.get_adjacent():
+                e = v.get_edge(adj)
+
+                intersect = e.meta[pos]['intersect']
+
+                if not intersect.is_empty():
+                    if intersect.type == 'num':
+                        pos_constraints.append(u'({} >= {} AND {} <= {})'.format(proj, intersect.min, proj, intersect.max))
+                    elif intersect.type == 'text':
+                        if intersect.is_all():
+                            # if any intersects are ALL, just skip the rest
+                            pos_constraints = []
+                            break
+                        else:
+                            pos_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([v.replace("'", "''") for v in intersect.vals])))
+
+                if pos_constraints:
+                    constraints.append("({})".format(" OR ".join(pos_constraints)))
+
+        if constraints:
+            if 'where' not in query_str.lower():
+                query_str += u' WHERE '
+            else:
+                query_str += u' AND '
+
+            query_str += u' AND '.join(constraints)
+        return query_str
 
     @staticmethod
     def tuple_in_query(db, t, query):

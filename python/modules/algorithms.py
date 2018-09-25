@@ -37,7 +37,7 @@ class Base(object):
         }
         return None, None, result_meta
 
-    def run_cqs(self, cqs, msg_append='', part=None):
+    def run_cqs(self, cqs, msg_append='', qig=None):
         valid_cqs = []
         timed_out = []
         sql_errors = []
@@ -52,11 +52,12 @@ class Base(object):
                 if not isinstance(cq, Query):
                     raise Exception('CQ should be a Query object.')
 
-                if part:
-                    query_str = part.constrain_query(cq)
+                if qig:
+                    query_str = cq.constrain(qig)
                 else:
                     query_str = cq.query_str
 
+                print(query_str.encode('utf-8')[:1000])
                 cq_tuples, was_cached = self.db.execute(query_str)
                 if was_cached:
                     cached.append(cqid)
@@ -198,11 +199,20 @@ class Partition(Base):
             return (t, cqids, d)
         return None
 
-    def run_part(self, part, constrain=False):
+    def run_part(self, part, constrain=False, qig=None):
         if constrain:
-            return self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']), part=part)
+            return self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']), qig=qig)
         else:
             return self.run_cqs(part.cqs, msg_append=' ' + str(part.meta['types']))
+
+    def print_partitions(self, part_set):
+        print('\n=== PARTITIONS ===')
+        for k, v in part_set.parts.items():
+            if self.part_func == 'range':
+                print('{}, Count: {}, CQs: {}'.format(k, len(v), v.meta['cqids']))
+            else:
+                print('{}, Count: {}'.format(k, len(v)))
+        print()
 
     def execute(self, cqs):
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
@@ -229,18 +239,12 @@ class Partition(Base):
         total_error_cqs = 0
         total_query_time = 0
 
-        print('\n=== PARTITIONS ===')
-        for k, v in part_set.parts.items():
-            if self.part_func == 'range':
-                print('{}, Count: {}, Intersects: {}'.format(k, len(v), [str(i) for i in v.meta['intersects']]))
-            else:
-                print('{}, Count: {}'.format(k, len(v)))
-        print()
+        self.print_partitions(part_set)
 
         tuple_find_time = 0
         t = None
         for part in part_set:
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part, constrain=self.constrain)
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part, constrain=self.constrain, qig=qig)
             part_set.update_executed(part.cqs.keys())
 
             total_exec_cqs += len(part.cqs)
@@ -295,115 +299,6 @@ class Partition(Base):
             'comp_time': comp_time
         }
         return max_tuple, max_tuple_cqids, result_meta
-
-# class Overlap(Base):
-#     def execute(self, cqs):
-#         type_parts = {}       # each type-based partition
-#
-#         cqs_parsed, parse_time = self.parser.parse_many(cqs)
-#
-#         print("Partitioning CQs by type...")
-#         start = time.time()
-#         part_set = PartitionSet(self.db, cqs_parsed)
-#         partition_time = time.time() - start
-#         print("Done partitioning [{}s]".format(partition_time))
-#
-#         print("Find overlaps...")
-#         start = time.time()
-#         part_set.find_overlaps(self.tidb)
-#         overlap_time = time.time() - start
-#         print("Done finding overlaps [{}s]".format(overlap_time))
-#
-#         total_interval_time = 0
-#         total_query_time = 0
-#
-#         tuples = None
-#         total_exec_cqs = 0
-#         total_timeout_cqs = 0
-#         total_error_cqs = 0
-#         total_valid_cqs = 0
-#
-#         for type, part in part_set:
-#             print('Executing partition {}...'.format(type))
-#
-#             print('Rewriting queries for best overlap...')
-#             start = time.time()
-#             cur_cqs = dict(part.cqs)
-#
-#             all_timed_out = []
-#
-#             for colnum, coltype in enumerate(type):
-#                 best = part.top_n_col_overlaps(1, colnum)
-#                 if best is not None:
-#                     cur_cqs = Query.narrow_all(self.db, part_set, colnum, best, cur_cqs)
-#             interval_time = time.time() - start
-#             print('Done rewriting queries [{}s]'.format(interval_time))
-#
-#             total_interval_time += interval_time
-#
-#             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
-#
-#             all_timed_out.extend(timed_out)
-#
-#             total_exec_cqs += len(cur_cqs)
-#             total_timeout_cqs += len(timed_out)
-#             total_error_cqs += len(sql_errors)
-#             total_valid_cqs += len(valid_cqs)
-#             total_query_time += query_time
-#
-#             if tuples:
-#                 break
-#
-#             print('Could not find tuple, executing full partition...')
-#             cur_cqs = dict(part.cqs)
-#
-#             for cqid in timed_out:
-#                 cur_cqs.pop(cqid, None)
-#
-#             for cqid in sql_errors:
-#                 cur_cqs.pop(cqid, None)
-#
-#             if cur_cqs:
-#                 tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cur_cqs, msg_append=' ' + str(type))
-#
-#                 all_timed_out.extend(timed_out)
-#
-#                 total_exec_cqs += len(cur_cqs)
-#                 total_valid_cqs += len(valid_cqs)
-#                 total_timeout_cqs += len(timed_out)
-#                 total_error_cqs += len(sql_errors)
-#                 total_query_time += query_time
-#
-#                 if tuples:
-#                     break
-#                 else:
-#                     print('No tuples found, executing next partition...')
-#
-#         dist_time = 0
-#         max_tuple = None
-#         max_tuple_cqids = None
-#         max_dist = 0
-#         if tuples:
-#             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
-#             sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, all_timed_out, TOP_DISTS)
-#             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
-#             max_tuple, max_dist = sorted_dists.items()[0]
-#             max_tuple_cqids = tuples[max_tuple]
-#
-#         comp_time = partition_time + overlap_time + total_interval_time + dist_time
-#
-#         result_meta = {
-#             'dist': max_dist,
-#             'total_cq': len(cqs),
-#             'exec_cq': total_exec_cqs,
-#             'valid_cq': total_valid_cqs,
-#             'timeout_cq': total_timeout_cqs,
-#             'error_cq': total_error_cqs,
-#             'parse_time': parse_time,
-#             'query_time': total_query_time,
-#             'comp_time': comp_time
-#         }
-#         return max_tuple, max_tuple_cqids, result_meta
 
 class Exhaustive(Base):
     def execute(self, cqs):

@@ -52,7 +52,7 @@ class AIG(object):
     def get_vertex(self, attr):
         return self.vertices[attr]
 
-    def add_edge(self, frm_attr, to_attr, values):
+    def add_edge(self, frm_attr, to_attr, intersect):
         if frm_attr not in self.vertices:
             self.add_vertex(frm_attr)
         if to_attr not in self.vertices:
@@ -61,7 +61,7 @@ class AIG(object):
         frm = self.get_vertex(frm_attr)
         to = self.get_vertex(to_attr)
 
-        e = AIGEdge(values)
+        e = AIGEdge(intersect)
         frm.add_neighbor(to, e)
         to.add_neighbor(frm, e)
 
@@ -70,57 +70,6 @@ class AIG(object):
 
     def get_vertices(self):
         return self.vertices.values()
-
-    def get_num_intersects(self, attrs):
-        attrs = set(attrs)
-
-        largest_min = max(a.min for a in attrs)
-        smallest_max = min(a.max for a in attrs)
-
-        return AttributeIntersect('num', min=largest_min, max=smallest_max)
-
-    def get_text_intersects(self, attrs):
-        attrs = list(set(attrs))
-
-        # select a single attr, find edges to all other attrs
-        attr = attrs[0]
-        vals = None
-        for i in range(1, len(attrs)):
-            e = self.get_vertex(attr).get_edge(attrs[i])
-
-            if not e:
-                raise Exception('No edge found between {} and {}!'.format(attr, attrs[i]))
-
-            if vals is None:
-                vals = e.values.vals
-            else:
-                vals &= e.values.vals
-
-        return AttributeIntersect('text', vals=vals)
-
-    def get_intersects(self, type, attrs):
-        if type == 'num':
-            return self.get_num_intersects(attrs)
-        elif type == 'text':
-            return self.get_text_intersects(attrs)
-        else:
-            return None
-
-    # def bron_kerbosch(self, cliques, R, P, X):
-    #     if not P and not X:
-    #         cliques.append(R)
-    #         return cliques
-    #     for attr in P:
-    #         singleton = set([attr])
-    #         N = set(self.get_vertex(attr).get_adjacent())
-    #         self.bron_kerbosch(cliques, R | singleton, P & N, X & N)
-    #         P = P - singleton
-    #         X = X | singleton
-    #     return cliques
-    #
-    # def find_maximal_cliques(self, attrs):
-    #     return self.bron_kerbosch([], set(), set(attrs), set())
-
 
 class AIGVertex(object):
     def __init__(self, attr):
@@ -143,5 +92,5 @@ class AIGVertex(object):
         return self.id
 
 class AIGEdge(object):
-    def __init__(self, values):
-        self.values = values
+    def __init__(self, intersect):
+        self.intersect = intersect

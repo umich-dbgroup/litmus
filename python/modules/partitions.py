@@ -41,25 +41,3 @@ class SinglePart(object):
 
     def add(self, cqid, cq):
         self.cqs[cqid] = cq
-
-    def constrain_query(self, cq):
-        query_str = cq.query_str
-
-        constraints = []
-        for pos, proj in enumerate(cq.projs):
-            intersect = self.meta['intersects'][pos]
-            if not intersect.is_empty():
-                if not intersect.is_empty():
-                    if intersect.type == 'num':
-                        constraints.append(u'({} >= {} AND {} <= {})'.format(proj, intersect.min, proj, intersect.max))
-                    elif not intersect.is_all():
-                        constraints.append(u"{} IN ('{}')".format(proj, u"','".join([v.replace("'", "''") for v in intersect.vals])))
-
-        if constraints:
-            if 'where' not in query_str.lower():
-                query_str += u' WHERE '
-            else:
-                query_str += u' AND '
-
-            query_str += u' AND '.join(constraints)
-        return query_str
