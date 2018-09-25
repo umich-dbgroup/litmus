@@ -187,16 +187,22 @@ class Partition(Base):
 
         return result
 
-    def find_optimal_tuple(self, part_set, part, max_tuples):
+    def find_optimal_tuples(self, part_set, part, max_tuples):
         future_part_max_dist = self.calc_future_part_max_dist(part_set, part)
 
+        max_dist = 0
+        result = []
         for t, cqids, d in max_tuples:
             # exclude if not exceed future partition max dist
             if d < future_part_max_dist:
                 continue
+            if d > max_dist:
+                max_dist = d
+                result = [(t, cqids, d)]
+            elif d == max_dist:
+                result.append((t, cqids, d))
 
-            return (t, cqids, d)
-        return None
+        return result
 
     def run_part(self, part_key, part, constrain=False, qig=None):
         if constrain:
@@ -212,6 +218,17 @@ class Partition(Base):
             else:
                 print('{}, Count: {}'.format(k, len(v)))
         print()
+
+    def get_max_tuples(self, T):
+        max_dist = 0
+        results = []
+        for t, cqids, d in T:
+            if d > max_dist:
+                max_dist = d
+                results = [(t, cqids, d)]
+            elif d == max_dist:
+                results.append((t, cqids, d))
+        return results
 
     def execute(self, cqs):
         cqs_parsed, parse_time = self.parser.parse_many(cqs)
@@ -241,7 +258,7 @@ class Partition(Base):
         self.print_partitions(part_set)
 
         tuple_find_time = 0
-        t = None
+        T_prev = None
         for part_key, part in part_set:
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part_key, part, constrain=self.constrain, qig=qig)
             part_set.update_executed(part.cqs.keys())
@@ -253,36 +270,34 @@ class Partition(Base):
             total_query_time += query_time
 
             start = time.time()
-            max_tuples = self.find_part_max_dist(part_set, part, tuples)
+            T_max = self.find_part_max_dist(part_set, part, tuples)
             tuple_find_time += time.time() - start
 
-            if t is not None:
-                max_tuples.append(t)
+            if T_prev:
+                T_max.extend(T_prev)
 
-            if max_tuples:
+            if T_max:
                 start = time.time()
-                opt_t = self.find_optimal_tuple(part_set, part, max_tuples)
+                T_opt = self.find_optimal_tuples(part_set, part, T_max)
                 tuple_find_time += time.time() - start
 
-                if opt_t:
-                    t = opt_t
+                if T_opt:
+                    T_prev = T_opt
                     break
 
-                if t is None or max_tuples[0][2] > t[2]:
-                    t = max_tuples[0]
+                T_prev = self.get_max_tuples(T_max)
 
-            print('Optimal tuple not found, executing next partition...')
+            print('Optimal tuples not found, executing next partition...')
 
         max_dist = 0
         max_tuple = None
         max_tuple_cqids = None
         dist_time = 0
-        if t:
-            max_tuple = t[0]
-            max_tuple_cqids = t[1]
-            max_dist = t[2]
+        if T_prev:
+            for t, cqids, d in T_prev[0:TOP_DISTS]:
+                self.print_dist(t, d, cqids)
 
-            self.print_dist(max_tuple, max_dist, max_tuple_cqids)
+            max_tuple, max_tuple_cqids, max_dist = T_prev[0]
 
         comp_time = qig_time + partition_time + tuple_find_time
 
