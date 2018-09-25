@@ -1,3 +1,5 @@
+import re
+
 class Query(object):
     def __init__(self, cqid, query_str, projs, preds):
         self.cqid = cqid

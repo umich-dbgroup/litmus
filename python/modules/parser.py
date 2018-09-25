@@ -2,7 +2,6 @@ __all__ = ['SQLParser']
 
 import os
 import pickle
-import re
 import time
 import traceback
 
