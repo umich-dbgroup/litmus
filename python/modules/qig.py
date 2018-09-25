@@ -42,6 +42,15 @@ class QIG(object):
             raise Exception('Could not find vertex {}.'.format(cqid))
         return self.vertices[cqid]
 
+    def remove_cq(self, cqid):
+        if cqid not in self.vertices:
+            raise Exception('Could not find vertex {}.'.format(cqid))
+        for adj in self.vertices[cqid].get_adjacent():
+            self.vertices[adj].remove_neighbor(cqid)
+
+        self.vertices.pop(cqid, None)
+        self.cqs.pop(cqid, None)
+
     def get_cqids(self):
         return self.vertices.keys()
 
@@ -100,6 +109,11 @@ class QIG(object):
                 stmts.append('{} -- {}'.format(cqid, cqids[j]))
         return 'graph {{ {} }}'.format('; '.join(stmts))
 
+    def update(self, cqs):
+        diff = set(self.get_cqids()) - set(cqs.keys())
+        for cqid in diff:
+            self.remove_cq(cqid)
+
 class QIGVertex(object):
     def __init__(self, cqid, meta):
         self.cqid = cqid
@@ -108,6 +122,9 @@ class QIGVertex(object):
 
     def add_neighbor(self, v, e):
         self.adjacent[v.cqid] = e
+
+    def remove_neighbor(self, cqid):
+        self.adjacent.pop(cqid, None)
 
     def get_edge(self, cqid):
         if cqid not in self.adjacent:

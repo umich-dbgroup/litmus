@@ -235,16 +235,19 @@ class Partition(Base):
 
         print('Constructing QIG with information: {}'.format(self.part_func))
         start = time.time()
-        if self.part_func == 'type':
-            qig = QIGByType(self.db, cqs_parsed)
-        elif self.part_func == 'range':
-            qig = QIGByRange(self.db, cqs_parsed, self.aig)
+        if hasattr(self, 'qig'):
+            self.qig.update(cqs_parsed)
+        else:
+            if self.part_func == 'type':
+                self.qig = QIGByType(self.db, cqs_parsed)
+            elif self.part_func == 'range':
+                self.qig = QIGByRange(self.db, cqs_parsed, self.aig)
         qig_time = time.time() - start
         print("Done constructing QIG [{}s]".format(qig_time))
 
         print('Partitioning (maximal cliques + sort)...')
         start = time.time()
-        part_set = qig.find_partition_set()
+        part_set = self.qig.find_partition_set()
         part_set.sort(self.part_sort)
         partition_time = time.time() - start
         print('Done partitioning [{}s]'.format(partition_time))
@@ -260,7 +263,7 @@ class Partition(Base):
         tuple_find_time = 0
         T_prev = None
         for part_key, part in part_set:
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part_key, part, constrain=self.constrain, qig=qig)
+            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_part(part_key, part, constrain=self.constrain, qig=self.qig)
             part_set.update_executed(part.cqs.keys())
 
             total_exec_cqs += len(part.cqs)
