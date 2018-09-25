@@ -13,25 +13,30 @@ class Query(object):
         constraints = []
 
         for pos, proj in enumerate(self.projs):
-            pos_constraints = []
+            pos_type = v.meta['types'][pos]
+            pos_union = None
+
             for adj in v.get_adjacent():
                 e = v.get_edge(adj)
 
                 intersect = e.meta[pos]['intersect']
 
                 if not intersect.is_empty():
-                    if intersect.type == 'num':
-                        pos_constraints.append(u'({} >= {} AND {} <= {})'.format(proj, intersect.min, proj, intersect.max))
-                    elif intersect.type == 'text':
-                        if intersect.is_all():
-                            # if any intersects are ALL, just skip the rest
-                            pos_constraints = []
-                            break
-                        else:
-                            pos_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([v.replace("'", "''") for v in intersect.vals])))
+                    if pos_union is None:
+                        pos_union = intersect
+                        continue
 
-                if pos_constraints:
-                    constraints.append("({})".format(" OR ".join(pos_constraints)))
+                    if pos_type == 'text' and intersect.is_all():
+                        pos_union = None
+                        break
+
+                    pos_union.union(intersect)
+
+            if pos_union:
+                if pos_type == 'num':
+                    constraints.append(u'({} >= {} AND {} <= {})'.format(proj, pos_union.min, proj, pos_union.max))
+                elif pos_type == 'text':
+                    constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([v.replace("'", "''") for v in pos_union.vals])))
 
         if constraints:
             if 'where' not in query_str.lower():

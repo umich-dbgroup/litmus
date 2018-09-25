@@ -255,7 +255,7 @@ class QIGByRange(QIGByType):
                             posqig.add_edge(cqid, vid, {
                                 'intersect': AllAttributeIntersect('text')
                             })
-                        elif attr.type == 'num' and attr.min is not None:
+                        elif attr.type == 'num':
                             posqig.add_edge(cqid, vid, {
                                 'intersect': AttributeIntersect('num', min=attr.min, max=attr.max)
                             })
@@ -270,15 +270,8 @@ class QIGByRange(QIGByType):
 
         cqids = sorted(list(cqids))
         v1 = self.get_vertex(cqids[0])
-        # size = len(v1.meta['attrs'])
-        #
-        # intersects = []
-        # for pos in range(0, size):
-        #     attrs = [self.get_vertex(cqid).meta['attrs'][pos] for cqid in cqids]
-        #     intersects.append(self.aig.get_intersects(attrs[0].type, attrs))
 
         return {
-            # 'intersects': intersects,
             'types': v1.meta['types'],
             'cqids': cqids
         }

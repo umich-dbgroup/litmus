@@ -57,7 +57,6 @@ class Base(object):
                 else:
                     query_str = cq.query_str
 
-                print(query_str.encode('utf-8')[:1000])
                 cq_tuples, was_cached = self.db.execute(query_str)
                 if was_cached:
                     cached.append(cqid)

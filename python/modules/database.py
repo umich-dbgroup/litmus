@@ -11,10 +11,16 @@ class AttributeIntersect(object):
     def __init__(self, type, vals=None, min=None, max=None):
         self.type = type
         if type == 'text':
-            self.vals = sorted(vals)
+            if len(vals) == 0:
+                self = EmptyAttributeIntersect('text')
+            else:
+                self.vals = sorted(vals)
         elif type == 'num':
-            self.min = min
-            self.max = max
+            if min is None or max is None:
+                self = EmptyAttributeIntersect('num')
+            else:
+                self.min = min
+                self.max = max
 
     def __unicode__(self):
         if self.type == 'text':
@@ -26,13 +32,42 @@ class AttributeIntersect(object):
         return unicode(self).encode('utf-8')
 
     def is_empty(self):
-        if self.type == 'text':
-            return not self.is_all() and len(self.vals) == 0
-        elif self.type == 'num':
-            return self.min is None or self.max is None
+        return isinstance(self, EmptyAttributeIntersect)
 
     def is_all(self):
         return isinstance(self, AllAttributeIntersect)
+
+    def union(self, other):
+        if self.is_all():
+            return self
+        elif other.is_all():
+            return other
+
+        if self.type != other.type:
+            raise Exception('Cannot union two AttributeIntersects of differing type.')
+
+        if self.type == 'num':
+            smaller_min = min(self.min, other.min)
+            larger_max = max(self.max, other.max)
+            return AttributeIntersect('num', min=smaller_min, max=larger_max)
+        elif self.type == 'text':
+            return AttributeIntersect('text', vals=self.vals + other.vals)
+
+class EmptyAttributeIntersect(AttributeIntersect):
+    def __init__(self, type):
+        self.type = type
+        self.vals = None
+        self.min = None
+        self.max = None
+
+    def is_all(self):
+        return False
+
+    def is_empty(self):
+        return True
+
+    def __unicode__(self):
+        return '{}: EMPTY'.format(self.type)
 
 # case that all values intersect (e.g. attribute is intersected with self)
 class AllAttributeIntersect(AttributeIntersect):
@@ -44,6 +79,9 @@ class AllAttributeIntersect(AttributeIntersect):
 
     def is_all(self):
         return True
+
+    def __unicode__(self):
+        return '{}: ALL'.format(self.type)
 
 class Attribute(object):
     def __init__(self, name, type):
