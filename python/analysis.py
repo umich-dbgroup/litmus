@@ -17,6 +17,7 @@ def accumulate_results(results, min_qid, max_qid):
     query_times = []
     comp_times = []
     total_times = []
+    times_per_iter = []
 
     for qid, r in results.items():
         if min_qid and qid < min_qid:
@@ -42,6 +43,7 @@ def accumulate_results(results, min_qid, max_qid):
         query_times.append(query_time)
         comp_times.append(comp_time)
         total_times.append(total_time)
+        times_per_iter.append(total_time / r['iters'])
 
     summary = {
         'total': len(results),
@@ -50,7 +52,8 @@ def accumulate_results(results, min_qid, max_qid):
         'iters': each_iters,
         'query_times': query_times,
         'comp_times': comp_times,
-        'total_times': total_times
+        'total_times': total_times,
+        'times_per_iter': times_per_iter
     }
 
     return summary
@@ -68,6 +71,7 @@ def avg_summaries(summaries):
             result['query_times'] = list(map(add,result['query_times'],summary['query_times']))
             result['comp_times'] = list(map(add,result['comp_times'],summary['comp_times']))
             result['total_times'] = list(map(add,result['total_times'],summary['total_times']))
+            result['times_per_iter'] = list(map(add,result['times_per_iter'],summary['times_per_iter']))
 
     result['total'] /= len(summaries)
     result['analyzed'] /= len(summaries)
@@ -76,6 +80,7 @@ def avg_summaries(summaries):
     result['query_times'] = [i / len(summaries) for i in result['query_times']]
     result['comp_times'] = [i / len(summaries) for i in result['comp_times']]
     result['total_times'] = [i / len(summaries) for i in result['total_times']]
+    result['times_per_iter'] = [i / len(summaries) for i in result['times_per_iter']]
 
     return result
 
@@ -130,9 +135,11 @@ def main():
     table.append_row(['Third Quartile # Iters', '{:.3f}'.format(np.percentile(stats['iters'], 75))])
     table.append_row(['Max # Iters', '{:.3f}'.format(np.max(stats['iters']))])
     table.append_row(['Std. Dev. # Iters', '{:.3f}'.format(np.std(stats['iters']))])
+    table.append_row(['Mean # Iters', '{:.3f}'.format(np.mean(stats['iters']))])
     table.append_row(['Avg. Query Time', '{:.3f}s'.format(np.mean(stats['query_times']))])
     table.append_row(['Avg. Computation Time', '{:.3f}s'.format(np.mean(stats['comp_times']))])
     table.append_row(['Avg. Total Time', '{:.3f}s'.format(np.mean(stats['total_times']))])
+    table.append_row(['Avg. Total Time/Iter', '{:.3f}s'.format(np.mean(stats['times_per_iter']))])
     print(table)
 
 if __name__ == '__main__':
