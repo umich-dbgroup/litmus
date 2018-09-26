@@ -223,7 +223,7 @@ class QIGByType(QIG):
         return v1.meta
 
     def part_key(self, part):
-        return tuple(part.meta['types'])
+        return str(tuple(part.meta['types']))
 
     def find_type_components(self):
         components = {}
