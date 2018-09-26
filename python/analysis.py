@@ -19,6 +19,7 @@ def accumulate_results(results, min_qid, max_qid):
     comp_times = []
     total_times = []
     times_per_iter = []
+    max_iter_times = []
 
     for qid, r in results.items():
         if min_qid and qid < min_qid:
@@ -37,15 +38,21 @@ def accumulate_results(results, min_qid, max_qid):
         query_time = 0
         comp_time = 0
         total_time = 0
+        max_iter_time = 0
         for meta in r['meta']:
             query_time += meta['query_time']
             comp_time += meta['comp_time']
-            total_time += meta['query_time'] + meta['comp_time']
+            iter_time = meta['query_time'] + meta['comp_time']
+            total_time += iter_time
+
+            if iter_time > max_iter_time:
+                max_iter_time = iter_time
 
         query_times.append(query_time)
         comp_times.append(comp_time)
         total_times.append(total_time)
         times_per_iter.append(total_time / r['iters'])
+        max_iter_times.append(max_iter_time)
 
     summary = {
         'total': len(results),
@@ -56,7 +63,8 @@ def accumulate_results(results, min_qid, max_qid):
         'query_times': query_times,
         'comp_times': comp_times,
         'total_times': total_times,
-        'times_per_iter': times_per_iter
+        'times_per_iter': times_per_iter,
+        'max_iter_times': max_iter_times
     }
 
     return summary
@@ -76,6 +84,7 @@ def avg_summaries(summaries):
             result['comp_times'] = list(map(add,result['comp_times'],summary['comp_times']))
             result['total_times'] = list(map(add,result['total_times'],summary['total_times']))
             result['times_per_iter'] = list(map(add,result['times_per_iter'],summary['times_per_iter']))
+            result['max_iter_times'] = list(map(add,result['max_iter_times'],summary['max_iter_times']))
 
     result['total'] /= len(summaries)
     result['analyzed'] /= len(summaries)
@@ -85,6 +94,7 @@ def avg_summaries(summaries):
     result['comp_times'] = [i / len(summaries) for i in result['comp_times']]
     result['total_times'] = [i / len(summaries) for i in result['total_times']]
     result['times_per_iter'] = [i / len(summaries) for i in result['times_per_iter']]
+    result['max_iter_times'] = [i / len(summaries) for i in result['max_iter_times']]
 
     return result
 
@@ -162,6 +172,7 @@ def main():
     table.append_row(['Max Total Time', '{:.3f}s'.format(np.max(stats['total_times']))])
     table.append_row(['Mean Total Time/Iter', '{:.3f}s'.format(np.mean(stats['times_per_iter']))])
     table.append_row(['Max Total Time/Iter', '{:.3f}s'.format(np.max(stats['times_per_iter']))])
+    table.append_row(['Avg. Max Single Iter', '{:.3f}s'.format(np.mean(stats['max_iter_times']))])
     print(table)
 
     table = BeautifulTable()
