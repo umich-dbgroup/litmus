@@ -377,6 +377,7 @@ class Random(Base):
             try:
                 exec_cqs.append(cqid)
                 print(cq.query_str)
+                cq.unconstrain()
                 cq_tuples, was_cached = self.db.execute(cq)
 
                 if was_cached:
