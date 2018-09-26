@@ -12,6 +12,7 @@ from beautifultable import BeautifulTable
 
 def accumulate_results(results, min_qid, max_qid):
     analyzed_count = 0
+    qids = []
     cq_counts = []
     each_iters = []
     query_times = []
@@ -29,6 +30,7 @@ def accumulate_results(results, min_qid, max_qid):
             continue
 
         analyzed_count += 1
+        qids.append(qid)
         cq_counts.append(r['total_cqs'])
         each_iters.append(r['iters'])
 
@@ -48,6 +50,7 @@ def accumulate_results(results, min_qid, max_qid):
     summary = {
         'total': len(results),
         'analyzed': analyzed_count,
+        'qids': qids,
         'cq_counts': cq_counts,
         'iters': each_iters,
         'query_times': query_times,
@@ -66,6 +69,7 @@ def avg_summaries(summaries):
         else:
             result['total'] += summary['total']
             result['analyzed'] += summary['analyzed']
+            assert(result['qids'] == summary['qids'])
             result['cq_counts'] = list(map(add,result['cq_counts'],summary['cq_counts']))
             result['iters'] = list(map(add,result['iters'],summary['iters']))
             result['query_times'] = list(map(add,result['query_times'],summary['query_times']))
@@ -158,6 +162,15 @@ def main():
     table.append_row(['Max Total Time', '{:.3f}s'.format(np.max(stats['total_times']))])
     table.append_row(['Mean Total Time/Iter', '{:.3f}s'.format(np.mean(stats['times_per_iter']))])
     table.append_row(['Max Total Time/Iter', '{:.3f}s'.format(np.max(stats['times_per_iter']))])
+    print(table)
+
+    table = BeautifulTable()
+    table.column_headers = ['SLOWEST TASKS', 'TIME']
+    table.column_alignments['SLOWEST TASKS'] = BeautifulTable.ALIGN_LEFT
+    table.column_alignments['TIME'] = BeautifulTable.ALIGN_RIGHT
+    table.row_separator_char = ''
+    for idx in np.argsort(stats['total_times'])[::-1][:11]:
+        table.append_row([stats['qids'][idx], stats['total_times'][idx]])
     print(table)
 
 if __name__ == '__main__':

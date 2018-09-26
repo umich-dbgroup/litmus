@@ -15,13 +15,14 @@ from qig import QIGByType, QIGByRange
 TOP_DISTS = 5
 
 class Base(object):
-    def __init__(self, db, parser=None, aig=None, part_func=None, part_sort=None, constrain=False):
+    def __init__(self, db, parser=None, aig=None, part_func=None, part_sort=None, constrain=False, greedy=False):
         self.db = db
         self.parser = parser
         self.aig = aig
         self.part_func = part_func
         self.part_sort = part_sort
         self.constrain = constrain
+        self.greedy = greedy
 
     def execute(self, cqs):
         result_meta = {
@@ -280,6 +281,11 @@ class Partition(Base):
                 T_max.extend(T_prev)
 
             if T_max:
+                if self.greedy:
+                    print('Returning found tuples with Greedy approach...')
+                    T_prev = T_max
+                    break
+
                 start = time.time()
                 T_opt = self.find_optimal_tuples(part_set, part, T_max)
                 tuple_find_time += time.time() - start
@@ -288,7 +294,9 @@ class Partition(Base):
                     T_prev = T_opt
                     break
 
+                start = time.time()
                 T_prev = self.get_max_tuples(T_max)
+                tuple_find_time += time.time() - start
 
             print('Optimal tuples not found, executing next partition...')
 
