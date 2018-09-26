@@ -127,6 +127,21 @@ def main():
     iters_else = sum(i is not None for i in stats['iters'])
     failed = sum(i is None for i in stats['iters'])
 
+    # Iter boxplot data
+    iter_q1 = np.percentile(stats['iters'], 25)
+    iter_q2 = np.percentile(stats['iters'], 50)
+    iter_q3 = np.percentile(stats['iters'], 75)
+    iter_iqr = iter_q3 - iter_q1
+    iter_outliers = []
+    iter_normal = []
+    for it_r in stats['iters']:
+        if it_r >= iter_q1 - (1.5 * iter_iqr) and it_r <= iter_q3 + (1.5 * iter_iqr):
+            iter_normal.append(it_r)
+        else:
+            iter_outliers.append(it_r)
+    iter_max = max(iter_normal)
+    iter_min = min(iter_normal)
+
     table = BeautifulTable()
     table.column_headers = ['TASK INFO', 'VALUE']
     table.column_alignments['TASK INFO'] = BeautifulTable.ALIGN_LEFT
@@ -152,11 +167,12 @@ def main():
     table.append_row(['# Tasks <= 5 Iter (%)', '{} ({:.2f}%)'.format(iters_5, iters_5 / stats['analyzed'] * 100)])
     table.append_row(['# Tasks >= 6 Iter (%)', '{} ({:.2f}%)'.format(iters_else, iters_else / stats['analyzed'] * 100)])
     table.append_row(['# Failed Tasks (%)', '{} ({:.2f}%)'.format(failed, failed / stats['analyzed'] * 100)])
-    table.append_row(['Min # Iters', '{:.3f}'.format(np.min(stats['iters']))])
-    table.append_row(['First Quartile # Iters', '{:.3f}'.format(np.percentile(stats['iters'], 25))])
-    table.append_row(['Median # Iters', '{:.3f}'.format(np.percentile(stats['iters'], 50))])
-    table.append_row(['Third Quartile # Iters', '{:.3f}'.format(np.percentile(stats['iters'], 75))])
-    table.append_row(['Max # Iters', '{:.3f}'.format(np.max(stats['iters']))])
+    table.append_row(['Min # Iters', '{:.3f}'.format(iter_min)])
+    table.append_row(['First Quartile # Iters', '{:.3f}'.format(iter_q1)])
+    table.append_row(['Median # Iters', '{:.3f}'.format(iter_q2)])
+    table.append_row(['Third Quartile # Iters', '{:.3f}'.format(iter_q3)])
+    table.append_row(['Max # Iters', '{:.3f}'.format(iter_max)])
+    table.append_row(['Outlier Iters', '{}'.format(iter_outliers)])
     table.append_row(['Std. Dev. # Iters', '{:.3f}'.format(np.std(stats['iters']))])
     table.append_row(['Mean # Iters', '{:.3f}'.format(np.mean(stats['iters']))])
     print(table)
