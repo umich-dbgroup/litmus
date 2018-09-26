@@ -377,7 +377,7 @@ class Random(Base):
             try:
                 exec_cqs.append(cqid)
                 print(cq.query_str)
-                cq_tuples, was_cached = self.db.execute(cq.query_str)
+                cq_tuples, was_cached = self.db.execute(cq)
 
                 if was_cached:
                     cached.append(cqid)
