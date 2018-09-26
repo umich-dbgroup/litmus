@@ -51,7 +51,7 @@ def user_feedback(cand_cqs, tuple_cqids, ans):
 
     return new_cqs
 
-def execute_mode(mode, db, parser, qid, task, part_func, aig):
+def execute_mode(mode, db, parser, qid, task, part_func, aig, greedy):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
@@ -61,9 +61,9 @@ def execute_mode(mode, db, parser, qid, task, part_func, aig):
     elif mode == 'exhaustive':
         algorithm = Exhaustive(db, parser)
     elif mode == 'partition':
-        algorithm = Partition(db, parser, part_func=part_func, aig=aig)
+        algorithm = Partition(db, parser, part_func=part_func, aig=aig, greedy=greedy)
     elif mode == 'constrain':
-        algorithm = Partition(db, parser, part_func=part_func, aig=aig, constrain=True)
+        algorithm = Partition(db, parser, part_func=part_func, aig=aig, constrain=True, greedy=greedy)
 
     cand_cqs = task['cqs'].copy()
     result_metas = []
@@ -141,6 +141,7 @@ def main():
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--data_dir', default='../data')
     argparser.add_argument('--part_func', choices=['type', 'range'], default='range')
+    argparser.add_argument('--greedy', action='store_true')
     argparser.add_argument('--email')
     args = argparser.parse_args()
 
@@ -162,6 +163,9 @@ def main():
         file_prefix = '{}_{}_{}'.format(args.db, args.mode, args.part_func)
     else:
         file_prefix = '{}_{}'.format(args.db, args.mode)
+    if args.greedy:
+        file_prefix += '_greedy'
+
     cache_path = os.path.join(config.get('main', 'cache_dir'), file_prefix + '.pkl')
     results = load_cache(cache_path)
 
@@ -174,7 +178,7 @@ def main():
             if args.qid in results:
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
-                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.part_func, aig)
+                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.part_func, aig, args.greedy)
                 save_cache(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
@@ -187,7 +191,7 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.part_func, aig)
+                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.part_func, aig, args.greedy)
                     save_cache(results, cache_path)
                 # print_result(qid, results[qid])
 
