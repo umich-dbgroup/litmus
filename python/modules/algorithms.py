@@ -186,12 +186,14 @@ class Partition(Base):
             if self.need_check_future_part(part_set, part, cqids):
                 continue
 
-            # check if t exists in any queries timed out
-            for check_cqid in timed_out:
-                if Query.tuple_in_query(self.db, t, part.cqs[check_cqid]):
-                    cqids.append(check_cqid)
-
             d = self.dist(part_set.cqs, t, cqids)
+
+            if d > max_dist:
+                # check if t exists in any queries timed out
+                for check_cqid in timed_out:
+                    if Query.tuple_in_query(self.db, t, part.cqs[check_cqid]):
+                        cqids.append(check_cqid)
+                d = self.dist(part_set.cqs, t, cqids)
 
             if d > max_dist:
                 max_dist = d
@@ -348,6 +350,7 @@ class Exhaustive(Base):
         max_tuple_cqids = None
         max_dist = 0
         dist_time = 0
+        max_dist_time = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
             sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out)
@@ -417,6 +420,7 @@ class Random(Base):
         max_tuple_cqids = None
         max_dist = 0
         dist_time = 0
+        max_dist_time = 0
         if result:
             tuples = {}
             tuples[result] = list(valid_cqs)
