@@ -1,6 +1,6 @@
 # litmus
 
-- Run `setup_db.py`
-- For overlap, run `build_tidb.py`
-- For execution, run `main.py`
-- For analysis, run `analysis.py`
+- Run `setup_db.py <db>`
+- Run `build_aig.py <db>`
+- Run `main.py`
+- Run `analysis.py`
