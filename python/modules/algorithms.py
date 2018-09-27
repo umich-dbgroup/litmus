@@ -111,10 +111,10 @@ class Base(object):
         print("Done calculating dists [{}s]".format(dist_time))
         return sorted_tuple_dists, dist_time
 
-    def max_dist_tuples(self, cqs, tuples, sorted_dists, check_queries, k):
-        print('Evaluating distinguishability, including unexecuted queries (exec time not counted for runtime)...')
+    def max_dist_tuples(self, cqs, tuples, sorted_dists, check_queries):
+        print('Evaluating distinguishability, including timed out queries...')
         start = time.time()
-        for t, dist in sorted_dists.items()[0:k]:
+        for t, dist in sorted_dists.items():
             cqids = tuples[t]
 
             # check if t exists in any queries not yet executed/timed out
@@ -124,8 +124,16 @@ class Base(object):
 
             # recalculate dist for this
             sorted_dists[t] = self.dist(cqs, t, cqids)
-        print('Done evaluating distinguishability. [{}s]'.format(time.time() - start))
-        return sorted_dists
+
+            if sorted_dists[t] > 0:
+                break
+
+        # resort
+        sorted_dists = OrderedDict(sorted(sorted_dists.items(), key=lambda t: t[1], reverse=True))
+
+        max_dist_time = time.time() - start
+        print('Done evaluating distinguishability. [{}s]'.format(max_dist_time))
+        return sorted_dists, max_dist_time
 
     def print_stats(self, cq_count, timeout_count, sql_errors, valid_count, cached_count):
         print('Executed CQs: {}'.format(cq_count))
@@ -169,7 +177,7 @@ class Partition(Base):
                     return True
         return False
 
-    def find_part_max_dist(self, part_set, part, tuples):
+    def find_part_max_dist(self, part_set, part, tuples, timed_out):
         max_dist = 0
         result = []
 
@@ -177,6 +185,11 @@ class Partition(Base):
             # exclude if requires executing another partition
             if self.need_check_future_part(part_set, part, cqids):
                 continue
+
+            # check if t exists in any queries timed out
+            for check_cqid in timed_out:
+                if Query.tuple_in_query(self.db, t, part.cqs[check_cqid]):
+                    cqids.append(check_cqid)
 
             d = self.dist(part_set.cqs, t, cqids)
 
@@ -274,7 +287,7 @@ class Partition(Base):
             total_query_time += query_time
 
             start = time.time()
-            T_max = self.find_part_max_dist(part_set, part, tuples)
+            T_max = self.find_part_max_dist(part_set, part, tuples, timed_out)
             tuple_find_time += time.time() - start
 
             if T_prev:
@@ -337,7 +350,7 @@ class Exhaustive(Base):
         dist_time = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
-            sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out, TOP_DISTS)
+            sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_tuple, max_dist = sorted_dists.items()[0]
             max_tuple_cqids = tuples[max_tuple]
@@ -351,7 +364,7 @@ class Exhaustive(Base):
             'error_cq': len(sql_errors),
             'parse_time': parse_time,
             'query_time': query_time,
-            'comp_time': dist_time
+            'comp_time': dist_time + max_dist_time
         }
         return max_tuple, max_tuple_cqids, result_meta
 
@@ -413,7 +426,7 @@ class Random(Base):
             check_queries = list(r_keys)
             check_queries.extend(timed_out)
 
-            sorted_dists = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, check_queries, TOP_DISTS)
+            sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, check_queries)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_tuple, max_dist = sorted_dists.items()[0]
             max_tuple_cqids = tuples[max_tuple]
@@ -427,6 +440,6 @@ class Random(Base):
             'error_cq': len(sql_errors),
             'parse_time': parse_time,
             'query_time': query_time,
-            'comp_time': dist_time
+            'comp_time': dist_time + max_dist_time
         }
         return max_tuple, max_tuple_cqids, result_meta
