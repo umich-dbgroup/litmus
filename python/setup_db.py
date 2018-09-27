@@ -39,6 +39,7 @@ def main():
                 except Exception as e:
                     if str(e).startswith('1553'):
                         print('Did not drop {}.{} because of foreign key.'.format(relname, index_name))
+                    cursor.close()
             else:
                 unique_keys.append(column_name)
 
@@ -51,22 +52,36 @@ def main():
                 cursor = db.cursor()
                 qstr = 'ALTER TABLE {} ADD INDEX {}({})'.format(relname, attr_name, attr_name)
                 print(qstr)
-                cursor.execute(qstr)
-                cursor.close()
+                try:
+                    cursor.execute(qstr)
+                    cursor.close()
+                except Exception as e:
+                    if str(e).startswith('1061'):
+                        print('Did not add {}.{} because it was a duplicate.'.format(relname, attr_name))
+                    cursor.close()
+
             elif attr.type == 'text':
                 cursor = db.cursor()
                 qstr = 'ALTER TABLE {} ADD INDEX {}({}({}))'.format(relname, attr_name, attr_name, TEXT_INDEX_SIZE)
                 print(qstr)
-                cursor.execute(qstr)
-                cursor.close()
+                try:
+                    cursor.execute(qstr)
+                    cursor.close()
+                except Exception as e:
+                    if str(e).startswith('1061'):
+                        print('Did not add {}.{} because it was a duplicate.'.format(relname, attr_name))
+                    cursor.close()
 
                 cursor = db.cursor()
                 qstr = 'ALTER TABLE {} ADD FULLTEXT {}_ft({})'.format(relname, attr_name, attr_name)
                 print(qstr)
-                cursor.execute(qstr)
-                cursor.close()
-
-
+                try:
+                    cursor.execute(qstr)
+                    cursor.close()
+                except Exception as e:
+                    if str(e).startswith('1061'):
+                        print('Did not add {}.{} because it was a duplicate.'.format(relname, attr_name))
+                    cursor.close()
 
 if __name__ == '__main__':
     main()
