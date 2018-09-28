@@ -370,13 +370,15 @@ class Database(object):
 
         if query_key in self.query_cache:
             cached = self.query_cache[query_key]
-            if 'timeout' in cached:
-                raise Exception('Timeout: Query timed out.')
-            elif 'constraints' in cached and \
-              cq.within_constraints(cached['constraints']):
-                return cached['results'], True
-            elif 'offset' in cached:
-                offset = cached['offset'] + 1
+            if timed_out:
+                if 'offset' in cached:
+                    offset = cached['offset'] + 1
+            else:
+                if 'timeout' in cached:
+                    raise Exception('Timeout: Query timed out.')
+                elif 'constraints' in cached and \
+                  cq.within_constraints(cached['constraints']):
+                    return cached['results'], True
 
         query_str = query_key
         if timed_out:

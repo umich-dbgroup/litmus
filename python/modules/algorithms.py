@@ -73,14 +73,17 @@ class Base(object):
                 if str(e).startswith('Timeout'):
                     timed_out.append(cqid)
 
-                    # Run timed out query again to retrieve at least one tuple
-                    cq_tuples, was_cached = self.db.execute(cq, timed_out=True)
+                    try:
+                        # Run timed out query again to retrieve at least one tuple
+                        cq_tuples, was_cached = self.db.execute(cq, timed_out=True)
 
-                    if cq_tuples:
-                        for t in cq_tuples:
-                            if t not in tuples:
-                                tuples[t] = set()
-                            tuples[t].add(cqid)
+                        if cq_tuples:
+                            for t in cq_tuples:
+                                if t not in tuples:
+                                    tuples[t] = set()
+                                tuples[t].add(cqid)
+                    except Exception as e:
+                        pass
                 else:
                     print(traceback.format_exc())
                     print(query_str.encode('utf-8')[:1000])
