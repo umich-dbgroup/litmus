@@ -27,6 +27,9 @@ def accumulate_results(results, min_qid, max_qid):
         if max_qid and qid > max_qid:
             continue
 
+        if r['iters'] is None:
+            print('FAILED QUERY: {}'.format(qid))
+            continue
         if r['iters'] == 0:
             continue
 
