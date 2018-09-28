@@ -359,12 +359,16 @@ class Database(object):
     def get_relations(self):
         return self.relations
 
-    def execute(self, cq):
+    def execute(self, cq, timed_out=False):
+        query_str = cq.query_str
+        if timed_out:
+            query_str += ' LIMIT 1'
+
         if not hasattr(self, 'query_cache'):
             self.query_cache = {}
 
-        if cq.query_str in self.query_cache:
-            cached = self.query_cache[cq.query_str]
+        if query_str in self.query_cache:
+            cached = self.query_cache[query_str]
             if 'timeout' in cached:
                 raise Exception('Timeout: Query timed out.')
             elif 'constraints' in cached and \
@@ -385,7 +389,7 @@ class Database(object):
                 query_tuples.add(result)
             cursor.close()
 
-            self.query_cache[cq.query_str] = {
+            self.query_cache[query_str] = {
                 'constraints': cq.constraints,
                 'results': query_tuples
             }
@@ -393,6 +397,6 @@ class Database(object):
         except Exception as e:
             cursor.close()
             if str(e).startswith('3024'):
-                self.query_cache[cq.query_str] = { 'timeout': True }
+                self.query_cache[query_str] = { 'timeout': True }
                 raise Exception('Timeout: Query timed out.')
             raise e
