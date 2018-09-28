@@ -67,8 +67,8 @@ class Base(object):
 
                     for t in cq_tuples:
                         if t not in tuples:
-                            tuples[t] = []
-                        tuples[t].append(cqid)
+                            tuples[t] = set()
+                        tuples[t].add(cqid)
             except Exception as e:
                 if str(e).startswith('Timeout'):
                     timed_out.append(cqid)
@@ -79,8 +79,8 @@ class Base(object):
                     if cq_tuples:
                         for t in cq_tuples:
                             if t not in tuples:
-                                tuples[t] = []
-                            tuples[t].append(cqid)
+                                tuples[t] = set()
+                            tuples[t].add(cqid)
                 else:
                     print(traceback.format_exc())
                     print(query_str.encode('utf-8')[:1000])
@@ -129,7 +129,7 @@ class Base(object):
             # check if t exists in any queries not yet executed/timed out
             for check_cqid in check_queries:
                 if Query.tuple_in_query(self.db, t, cqs[check_cqid]):
-                    cqids.append(check_cqid)
+                    cqids.add(check_cqid)
 
             # recalculate dist for this
             sorted_dists[t] = self.dist(cqs, t, cqids)
