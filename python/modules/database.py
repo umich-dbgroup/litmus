@@ -360,20 +360,27 @@ class Database(object):
         return self.relations
 
     def execute(self, cq, timed_out=False):
-        query_str = cq.constrained()
+        query_key = cq.constrained()
         if timed_out:
-            query_str += ' LIMIT 1'
+            query_key += ' LIMIT 1'
+            offset = 0
 
         if not hasattr(self, 'query_cache'):
             self.query_cache = {}
 
-        if query_str in self.query_cache:
-            cached = self.query_cache[query_str]
+        if query_key in self.query_cache:
+            cached = self.query_cache[query_key]
             if 'timeout' in cached:
                 raise Exception('Timeout: Query timed out.')
             elif 'constraints' in cached and \
               cq.within_constraints(cached['constraints']):
                 return cached['results'], True
+            elif 'offset' in cached:
+                offset = cached['offset'] + 1
+
+        query_str = query_key
+        if timed_out:
+            query_str += ' OFFSET {}'.format(offset)
 
         cursor = self.cursor()
 
@@ -389,14 +396,17 @@ class Database(object):
                 query_tuples.add(result)
             cursor.close()
 
-            self.query_cache[query_str] = {
+            self.query_cache[query_key] = {
                 'constraints': cq.constraints,
                 'results': query_tuples
             }
+            if timed_out:
+                self.query_cache[query_key]['offset'] = offset
+
             return query_tuples, False
         except Exception as e:
             cursor.close()
             if str(e).startswith('3024'):
-                self.query_cache[query_str] = { 'timeout': True }
+                self.query_cache[query_key] = { 'timeout': True }
                 raise Exception('Timeout: Query timed out.')
             raise e
