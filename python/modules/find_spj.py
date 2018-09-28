@@ -20,7 +20,7 @@ def find_excludes(db):
     excludes = []
     for qid, task in data.items():
         for cqid, cq in task['cqs'].items():
-            if any(w in cq for w in NON_SPJ_WORDS):
+            if any(w in cq.lower() for w in NON_SPJ_WORDS):
                 excludes.append(int(qid))
                 break
     return excludes
