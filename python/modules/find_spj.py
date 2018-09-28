@@ -8,7 +8,8 @@ NON_SPJ_WORDS = [
     'count(',
     'max(',
     'min(',
-    'avg('
+    'avg(',
+    'sum('
 ]
 
 def find_excludes(db):
