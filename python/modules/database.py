@@ -360,7 +360,7 @@ class Database(object):
         return self.relations
 
     def execute(self, cq, timed_out=False):
-        query_str = cq.query_str
+        query_str = cq.constrained()
         if timed_out:
             query_str += ' LIMIT 1'
 
@@ -378,7 +378,7 @@ class Database(object):
         cursor = self.cursor()
 
         try:
-            cursor.execute(cq.constrained())
+            cursor.execute(query_str)
 
             query_tuples = set()
             for result in cursor:
