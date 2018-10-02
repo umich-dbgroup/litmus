@@ -393,7 +393,10 @@ class Database(object):
                 # find next incremental tuple
                 offset_str = query_str + ' LIMIT 1 OFFSET {}'.format(cq.offset)
                 cq.offset += 1
-                query_tuples = self.execute_sql(offset_str)
+                try:
+                    query_tuples = self.execute_sql(offset_str)
+                except Exception as e:
+                    query_tuples = set()
 
                 if query_tuples:
                     cq.cached = True
@@ -416,8 +419,16 @@ class Database(object):
             return query_tuples, False
         except Exception as e:
             if str(e).startswith('Timeout'):
-                cq.timed_out = True
-                # reexecute CQ
-                return self.execute(cq)
+                if cq.timed_out:
+                    # if already timed out and this is verification query
+                    # treat as invalid CQ
+                    cq.cached = True
+                    cq.timed_out = False
+                    cq.tuples = set()
+                    return cq.tuples, False
+                else:
+                    # reexecute CQ
+                    cq.timed_out = True
+                    return self.execute(cq)
             else:
                 raise e
