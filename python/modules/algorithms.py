@@ -86,7 +86,6 @@ class Base(object):
                         pass
                 else:
                     print(traceback.format_exc())
-                    print(query_str.encode('utf-8')[:1000])
                     sql_errors.append(cqid)
             bar.update(1)
         bar.close()
@@ -424,7 +423,6 @@ class Random(Base):
                 if str(e).startswith('Timeout'):
                     timed_out.append(cqid)
                 else:
-                    print(cq.query_str.encode('utf-8')[:1000])
                     print(traceback.format_exc())
                     sql_errors.append(cqid)
 
