@@ -357,9 +357,14 @@ class Exhaustive(Base):
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
             sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out)
-            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_tuple, max_dist = sorted_dists.items()[0]
             max_tuple_cqids = tuples[max_tuple]
+
+            # if we are working with timed out queries, just run the iteration again until you come up with better results
+            if max_dist == 0 and timed_out:
+                return self.execute(cqs)
+
+            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
 
         result_meta = {
             'dist': max_dist,
