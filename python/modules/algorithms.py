@@ -352,17 +352,21 @@ class Exhaustive(Base):
         max_tuple = None
         max_tuple_cqids = None
         max_dist = 0
-        dist_time = 0
-        max_dist_time = 0
+        comp_time = 0
         if tuples:
             sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
+            comp_time += dist_time
             sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out)
+            comp_time += max_dist_time
             max_tuple, max_dist = sorted_dists.items()[0]
             max_tuple_cqids = tuples[max_tuple]
 
             # if we are working with timed out queries, just run the iteration again until you come up with better results
             if max_dist == 0 and timed_out:
-                return self.execute(cqs)
+                max_tuple, max_tuple_cqids, r_meta = self.execute(cqs)
+                parse_time += r_meta['parse_time']
+                query_time += r_meta['query_time']
+                comp_time += r_meta['comp_time']
 
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
 
@@ -375,7 +379,7 @@ class Exhaustive(Base):
             'error_cq': len(sql_errors),
             'parse_time': parse_time,
             'query_time': query_time,
-            'comp_time': dist_time + max_dist_time
+            'comp_time': comp_time
         }
         return max_tuple, max_tuple_cqids, result_meta
 
