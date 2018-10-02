@@ -382,7 +382,7 @@ class Database(object):
 
     def execute(self, cq):
         query_str = cq.constrained()
-        
+
         if cq.cached:
             if cq.within_cache_constraints():
                 return cq.tuples, True
@@ -417,4 +417,7 @@ class Database(object):
         except Exception as e:
             if str(e).startswith('Timeout'):
                 cq.timed_out = True
-            raise e
+                # reexecute CQ
+                return self.execute(cq)
+            else:
+                raise e

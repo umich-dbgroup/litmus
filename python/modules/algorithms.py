@@ -61,6 +61,8 @@ class Base(object):
                 cq_tuples, was_cached = self.db.execute(cq)
                 if was_cached:
                     cached.append(cqid)
+                if cq.timed_out:
+                    timed_out.append(cqid)
 
                 if cq_tuples:
                     valid_cqs.append(cqid)
@@ -70,23 +72,8 @@ class Base(object):
                             tuples[t] = set()
                         tuples[t].add(cqid)
             except Exception as e:
-                if str(e).startswith('Timeout'):
-                    timed_out.append(cqid)
-
-                    try:
-                        # Run timed out CQ again to retrieve at least one tuple
-                        cq_tuples, was_cached = self.db.execute(cq)
-
-                        if cq_tuples:
-                            for t in cq_tuples:
-                                if t not in tuples:
-                                    tuples[t] = set()
-                                tuples[t].add(cqid)
-                    except Exception as e:
-                        pass
-                else:
-                    print(traceback.format_exc())
-                    sql_errors.append(cqid)
+                print(traceback.format_exc())
+                sql_errors.append(cqid)
             bar.update(1)
         bar.close()
         query_time = time.time() - start
