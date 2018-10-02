@@ -383,10 +383,7 @@ class Database(object):
     def execute(self, cq):
         query_str = cq.constrained()
 
-        if cq.cached:
-            if cq.within_cache_constraints():
-                return cq.tuples, True
-        elif cq.timed_out:
+        if cq.timed_out:
             if cq.tuples:
                 return cq.tuples, True
             else:
@@ -408,6 +405,9 @@ class Database(object):
                     cq.timed_out = False
                     cq.tuples = set()
                     return cq.tuples, False
+        elif cq.cached:
+            if cq.within_cache_constraints():
+                return cq.tuples, True
 
         try:
             query_tuples = self.execute_sql(query_str)
