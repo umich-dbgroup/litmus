@@ -15,4 +15,4 @@ https://s3.amazonaws.com/umdb-users/cjbaik/IMDB.sql
 
 https://s3.amazonaws.com/umdb-users/cjbaik/mas.sql
 
-- Modified Q65 because there were no papers with more than 200 citations.
+- Modified Q65, Q68 because there were no papers with more than 200 citations.
