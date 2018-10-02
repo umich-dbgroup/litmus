@@ -358,6 +358,8 @@ class Exhaustive(Base):
             comp_time += dist_time
             sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out)
             comp_time += max_dist_time
+            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
+
             max_tuple, max_dist = sorted_dists.items()[0]
             max_tuple_cqids = tuples[max_tuple]
 
@@ -367,8 +369,7 @@ class Exhaustive(Base):
                 parse_time += r_meta['parse_time']
                 query_time += r_meta['query_time']
                 comp_time += r_meta['comp_time']
-
-            self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
+                max_dist = r_meta['dist']
 
         result_meta = {
             'dist': max_dist,
