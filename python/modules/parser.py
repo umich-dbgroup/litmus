@@ -22,7 +22,8 @@ class SQLParser(object):
             self.cache = {}
 
     def update_cache(self, query):
-        self.cache[query.query_str] = query
+        copy = Query(query.cqid, query.query_str, query.projs, query.preds)
+        self.cache[query.query_str] = copy
         pickle.dump(self.cache, open(self.cache_path, 'wb'))
 
     def parse_one(self, cqid, query_str):
