@@ -13,7 +13,7 @@ from beautifultable import BeautifulTable
 from modules.aig import AIG
 from modules.algorithms import Base, Partition, Exhaustive, Random
 from modules.database import Database
-from modules.find_spj import find_excludes
+from modules.excludes import find_excludes
 from modules.mailer import Mailer
 from modules.parser import SQLParser
 
