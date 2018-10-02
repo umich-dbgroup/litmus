@@ -126,7 +126,7 @@ class Base(object):
             if sorted_dists[t] == 0:
                 # remove this tuple from all CQ caches
                 for cqid in cqids:
-                    cqs[cqids].tuples.discard(t)
+                    cqs[cqid].tuples.discard(t)
 
             else:
                 break
