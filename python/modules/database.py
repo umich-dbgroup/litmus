@@ -382,32 +382,34 @@ class Database(object):
 
     def execute(self, cq):
         query_str = cq.constrained()
-
+        
         if cq.cached:
             if cq.within_cache_constraints():
                 return cq.tuples, True
+        elif cq.timed_out:
+            if cq.tuples:
+                return cq.tuples, True
+            else:
+                # find next incremental tuple
+                offset_str = query_str + ' LIMIT 1 OFFSET {}'.format(cq.offset)
+                cq.offset += 1
+                query_tuples = self.execute_sql(offset_str)
 
-            if cq.timed_out:
-                if cq.tuples:
-                    return cq.tuples, True
+                if query_tuples:
+                    cq.cached = True
+                    cq.tuples = query_tuples
+                    return query_tuples, False
                 else:
-                    # find next incremental tuple
-                    offset_str = query_str + ' LIMIT 1 OFFSET {}'.format(cq.offset)
-                    cq.offset += 1
-                    query_tuples = self.execute_sql(offset_str)
-
-                    if query_tuples:
-                        cq.tuples = query_tuples
-                        return query_tuples, False
-                    else:
-                        # if none, treat as invalid CQ
-                        cq.timed_out = False
-                        cq.tuples = set()
-                        return cq.tuples, False
+                    # if none, treat as invalid CQ
+                    cq.cached = True
+                    cq.timed_out = False
+                    cq.tuples = set()
+                    return cq.tuples, False
 
         try:
             query_tuples = self.execute_sql(query_str)
 
+            cq.cached = True
             cq.cache_constraints = cq.constraints
             cq.tuples = query_tuples
 
