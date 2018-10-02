@@ -9,9 +9,10 @@ https://s3.amazonaws.com/umdb-users/cjbaik/IMDB.sql
 - Removed most queries from 118 onward (except 1) from IMDB because it involved nested queries.
 - Removed those with empty queries.
 - Removed 1 duplicate (when was Kevin Spacey born)
-- TODO: Q94, 95, 99, 101, 102 should remove final projection column (but doesn't matter because they're non-SPJ)
 
 
 ## MAS
 
 https://s3.amazonaws.com/umdb-users/cjbaik/mas.sql
+
+- Modified Q65 because there were no papers with more than 200 citations.
