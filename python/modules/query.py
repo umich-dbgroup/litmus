@@ -9,6 +9,16 @@ class Query(object):
         self.projs = projs
         self.preds = preds
 
+        # cache tuples on self.tuples
+        self.cached = False
+        self.cache_constraints = None
+        self.tuples = None
+
+        # set flag if timed out
+        self.timed_out = False
+        # offset for selecting next tuple from timed out query
+        self.offset = 0
+
     def constrained(self):
         if self.constraints is None:
             return self.query_str
@@ -56,9 +66,9 @@ class Query(object):
 
             self.constrained_query_str += u' AND '.join(str_constraints)
 
-    def within_constraints(self, constraints):
+    def within_cache_constraints(self):
         # if unconstrained, then this one is def within
-        if constraints is None:
+        if self.cache_constraints is None:
             return True
 
         # if other is constrained and this is not, it is not within
@@ -66,7 +76,7 @@ class Query(object):
             return False
 
         # otherwise, cycle through each constraint
-        for i, c in enumerate(constraints):
+        for i, c in enumerate(self.cache_constraints):
             if not self.constraints[i].within(c):
                 return False
 

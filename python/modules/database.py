@@ -359,33 +359,8 @@ class Database(object):
     def get_relations(self):
         return self.relations
 
-    def execute(self, cq, timed_out=False):
-        query_key = cq.constrained()
-        if timed_out:
-            query_key += ' LIMIT 1'
-            offset = 0
-
-        if not hasattr(self, 'query_cache'):
-            self.query_cache = {}
-
-        if query_key in self.query_cache:
-            cached = self.query_cache[query_key]
-            if timed_out:
-                if 'offset' in cached:
-                    offset = cached['offset'] + 1
-            else:
-                if 'timeout' in cached:
-                    raise Exception('Timeout: Query timed out.')
-                elif 'constraints' in cached and \
-                  cq.within_constraints(cached['constraints']):
-                    return cached['results'], True
-
-        query_str = query_key
-        if timed_out:
-            query_str += ' OFFSET {}'.format(offset)
-
+    def execute_sql(self, sql):
         cursor = self.cursor()
-
         try:
             cursor.execute(query_str)
 
@@ -398,17 +373,46 @@ class Database(object):
                 query_tuples.add(result)
             cursor.close()
 
-            self.query_cache[query_key] = {
-                'constraints': cq.constraints,
-                'results': query_tuples
-            }
-            if timed_out:
-                self.query_cache[query_key]['offset'] = offset
-
-            return query_tuples, False
+            return query_tuples
         except Exception as e:
             cursor.close()
             if str(e).startswith('3024'):
-                self.query_cache[query_key] = { 'timeout': True }
                 raise Exception('Timeout: Query timed out.')
+            raise e
+
+    def execute(self, cq):
+        query_str = cq.constrained()
+
+        if cq.cached:
+            if cq.within_cache_constraints():
+                return cq.tuples, True
+
+            if cq.timed_out:
+                if cq.tuples:
+                    return cq.tuples, True
+                else:
+                    # find next incremental tuple
+                    offset_str = query_str + ' LIMIT 1 OFFSET {}'.format(cq.offset)
+                    cq.offset += 1
+                    query_tuples = self.execute_sql(offset_str)
+
+                    if query_tuples:
+                        cq.tuples = query_tuples
+                        return query_tuples, False
+                    else:
+                        # if none, treat as invalid CQ
+                        cq.timed_out = False
+                        cq.tuples = set()
+                        return cq.tuples, False
+
+        try:
+            query_tuples = self.execute_sql(query_str)
+
+            cq.cache_constraints = cq.constraints
+            cq.tuples = query_tuples
+
+            return query_tuples, False
+        except Exception as e:
+            if str(e).startswith('Timeout'):
+                cq.timed_out = True
             raise e

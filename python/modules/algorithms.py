@@ -74,8 +74,8 @@ class Base(object):
                     timed_out.append(cqid)
 
                     try:
-                        # Run timed out query again to retrieve at least one tuple
-                        cq_tuples, was_cached = self.db.execute(cq, timed_out=True)
+                        # Run timed out CQ again to retrieve at least one tuple
+                        cq_tuples, was_cached = self.db.execute(cq)
 
                         if cq_tuples:
                             for t in cq_tuples:
@@ -137,7 +137,12 @@ class Base(object):
             # recalculate dist for this
             sorted_dists[t] = self.dist(cqs, t, cqids)
 
-            if sorted_dists[t] > 0:
+            if sorted_dists[t] == 0:
+                # remove this tuple from all CQ caches
+                for cqid in cqids:
+                    cqs[cqids].tuples.discard(t)
+
+            else:
                 break
 
         # resort
