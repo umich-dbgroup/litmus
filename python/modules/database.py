@@ -362,7 +362,7 @@ class Database(object):
     def execute_sql(self, sql):
         cursor = self.cursor()
         try:
-            cursor.execute(query_str)
+            cursor.execute(sql)
 
             query_tuples = set()
             for result in cursor:
