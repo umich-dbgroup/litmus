@@ -8,9 +8,11 @@ from operator import add
 import os
 import pickle
 
+from tqc import load_tqc_cache
+
 from beautifultable import BeautifulTable
 
-def accumulate_results(results, min_qid, max_qid):
+def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
     analyzed_count = 0
     qids = []
     cq_counts = []
@@ -25,6 +27,10 @@ def accumulate_results(results, min_qid, max_qid):
         if min_qid and qid < min_qid:
             continue
         if max_qid and qid > max_qid:
+            continue
+        if tqc_min and tqcs[qid] < tqc_min:
+            continue
+        if tqc_max and tqcs[qid] > tqc_max:
             continue
 
         if r['iters'] is None:
@@ -107,10 +113,15 @@ def main():
     parser.add_argument('mode')
     parser.add_argument('--min', type=int)
     parser.add_argument('--max', type=int)
+    parser.add_argument('--tqc_min', type=float)
+    parser.add_argument('--tqc_max', type=float)
     args = parser.parse_args()
 
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
+
+    if args.tqc_min or args.tqc_max:
+        tqcs = load_tqc_cache(config, args.db)
 
     dir = config.get('main', 'results_dir')
     summaries = []
@@ -118,7 +129,7 @@ def main():
         if filename.startswith('{}_{}'.format(args.db, args.mode)) and filename.endswith('.pkl'):
             result_path = os.path.join(dir, filename)
             results = pickle.load(open(result_path, 'rb'))
-            summaries.append(accumulate_results(results, args.min, args.max))
+            summaries.append(accumulate_results(results, args.min, args.max, tqcs, args.tqc_min, args.tqc_max))
     stats = avg_summaries(summaries)
 
     iters_0 = sum(i == 0 for i in stats['iters'])

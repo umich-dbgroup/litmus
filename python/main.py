@@ -139,7 +139,6 @@ def main():
     argparser.add_argument('db')
     argparser.add_argument('mode', choices=['random', 'exhaustive', 'partition', 'constrain'])
     argparser.add_argument('--qid', type=int)
-    argparser.add_argument('--data_dir', default='../data')
     argparser.add_argument('--part_func', choices=['type', 'range'], default='range')
     argparser.add_argument('--greedy', action='store_true')
     argparser.add_argument('--email')
@@ -157,7 +156,7 @@ def main():
       or (args.mode == 'partition' and args.part_func == 'range'):
         aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
-    tasks = load_tasks(args.data_dir, args.db)
+    tasks = load_tasks(config.get('main', 'data_dir'), args.db)
 
     if args.mode == 'partition':
         file_prefix = '{}_{}_{}'.format(args.db, args.mode, args.part_func)

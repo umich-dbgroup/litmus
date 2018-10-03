@@ -1,6 +1,7 @@
 [main]
 cache_dir = cache/
 results_dir = ../results/
+data_dir = ../data/
 
 [database]
 user = root
@@ -16,3 +17,6 @@ cache_path = cache/parser.cache
 
 [aig]
 dir = aig
+
+[tqc]
+dir = tqc
