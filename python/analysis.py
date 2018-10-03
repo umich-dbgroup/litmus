@@ -28,7 +28,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
             continue
         if max_qid and qid > max_qid:
             continue
-        if tqc_min and tqcs[qid] < tqc_min:
+        if tqc_min and tqcs[qid] <= tqc_min:
             continue
         if tqc_max and tqcs[qid] > tqc_max:
             continue
