@@ -15,9 +15,8 @@ from qig import QIGByType, QIGByRange
 TOP_DISTS = 5
 
 class Base(object):
-    def __init__(self, db, parser=None, aig=None, part_func=None, part_sort=None, constrain=False, greedy=False):
+    def __init__(self, db, aig=None, part_func=None, part_sort=None, constrain=False, greedy=False):
         self.db = db
-        self.parser = parser
         self.aig = aig
         self.part_func = part_func
         self.part_sort = part_sort
@@ -32,7 +31,6 @@ class Base(object):
             'valid_cq': 0,
             'timeout_cq': 0,
             'error_cq': 0,
-            'parse_time': 0,
             'query_time': 0,
             'comp_time': 0
         }
@@ -250,17 +248,15 @@ class Partition(Base):
         return results
 
     def execute(self, cqs):
-        cqs_parsed, parse_time = self.parser.parse_many(cqs)
-
         print('Constructing QIG with information: {}'.format(self.part_func))
         start = time.time()
         if hasattr(self, 'qig'):
-            self.qig.update(cqs_parsed)
+            self.qig.update(cqs)
         else:
             if self.part_func == 'type':
-                self.qig = QIGByType(self.db, cqs_parsed)
+                self.qig = QIGByType(self.db, cqs)
             elif self.part_func == 'range':
-                self.qig = QIGByRange(self.db, cqs_parsed, self.aig)
+                self.qig = QIGByRange(self.db, cqs, self.aig)
         qig_time = time.time() - start
         print("Done constructing QIG [{}s]".format(qig_time))
 
@@ -337,7 +333,6 @@ class Partition(Base):
             'valid_cq': total_valid_cqs,
             'timeout_cq': total_timeout_cqs,
             'error_cq': total_error_cqs,
-            'parse_time': parse_time,
             'query_time': total_query_time,
             'comp_time': comp_time
         }
@@ -345,18 +340,16 @@ class Partition(Base):
 
 class Exhaustive(Base):
     def execute(self, cqs):
-        cqs_parsed, parse_time = self.parser.parse_many(cqs)
-
-        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs_parsed)
+        tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(cqs)
 
         max_tuple = None
         max_tuple_cqids = None
         max_dist = 0
         comp_time = 0
         if tuples:
-            sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
+            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
             comp_time += dist_time
-            sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, timed_out)
+            sorted_dists, max_dist_time = self.max_dist_tuples(cqs, tuples, sorted_dists, timed_out)
             comp_time += max_dist_time
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
 
@@ -366,7 +359,6 @@ class Exhaustive(Base):
             # if we are working with timed out queries, just run the iteration again until you come up with better results
             if max_dist == 0 and timed_out:
                 max_tuple, max_tuple_cqids, r_meta = self.execute(cqs)
-                parse_time += r_meta['parse_time']
                 query_time += r_meta['query_time']
                 comp_time += r_meta['comp_time']
                 max_dist = r_meta['dist']
@@ -378,7 +370,6 @@ class Exhaustive(Base):
             'valid_cq': len(valid_cqs),
             'timeout_cq': len(timed_out),
             'error_cq': len(sql_errors),
-            'parse_time': parse_time,
             'query_time': query_time,
             'comp_time': comp_time
         }
@@ -386,8 +377,6 @@ class Exhaustive(Base):
 
 class Random(Base):
     def execute(self, cqs):
-        cqs_parsed, parse_time = self.parser.parse_many(cqs)
-
         exec_cqs = []
         valid_cqs = []
         timed_out = []
@@ -395,14 +384,14 @@ class Random(Base):
         cached = []
 
         print("Executing random CQs until 1 random tuple found...")
-        r_keys = list(cqs_parsed.keys())
+        r_keys = list(cqs.keys())
         random.shuffle(r_keys)
 
         result = None
         start = time.time()
         while r_keys:
             cqid = r_keys.pop()
-            cq = cqs_parsed[cqid]
+            cq = cqs[cqid]
             try:
                 exec_cqs.append(cqid)
                 print(cq.query_str)
@@ -436,13 +425,13 @@ class Random(Base):
         if result:
             tuples = {}
             tuples[result] = list(valid_cqs)
-            sorted_dists, dist_time = self.calc_dists(cqs_parsed, tuples)
+            sorted_dists, dist_time = self.calc_dists(cqs, tuples)
 
             # need to check not-yet-executed queries and any timed-out queries
             check_queries = list(r_keys)
             check_queries.extend(timed_out)
 
-            sorted_dists, max_dist_time = self.max_dist_tuples(cqs_parsed, tuples, sorted_dists, check_queries)
+            sorted_dists, max_dist_time = self.max_dist_tuples(cqs, tuples, sorted_dists, check_queries)
             self.print_top_dists(sorted_dists, tuples, TOP_DISTS)
             max_tuple, max_dist = sorted_dists.items()[0]
             max_tuple_cqids = tuples[max_tuple]
@@ -454,7 +443,6 @@ class Random(Base):
             'valid_cq': len(valid_cqs),
             'timeout_cq': len(timed_out),
             'error_cq': len(sql_errors),
-            'parse_time': parse_time,
             'query_time': query_time,
             'comp_time': dist_time + max_dist_time
         }

@@ -57,15 +57,16 @@ def execute_mode(mode, db, parser, qid, task, part_func, aig, greedy):
     algorithm = None
 
     if mode == 'random':
-        algorithm = Random(db, parser)
+        algorithm = Random(db)
     elif mode == 'exhaustive':
-        algorithm = Exhaustive(db, parser)
+        algorithm = Exhaustive(db)
     elif mode == 'partition':
-        algorithm = Partition(db, parser, part_func=part_func, aig=aig, greedy=greedy)
+        algorithm = Partition(db, part_func=part_func, aig=aig, greedy=greedy)
     elif mode == 'constrain':
-        algorithm = Partition(db, parser, part_func=part_func, aig=aig, constrain=True, greedy=greedy)
+        algorithm = Partition(db, part_func=part_func, aig=aig, constrain=True, greedy=greedy)
 
-    cand_cqs = task['cqs'].copy()
+    cand_cqs = parser.parse_many(task['cqs'].copy())
+
     result_metas = []
     iters = 0
     while len(cand_cqs) > len(task['ans']):
@@ -85,7 +86,7 @@ def execute_mode(mode, db, parser, qid, task, part_func, aig, greedy):
         # if couldn't find tuple or no cand cqs left
         iters = None
         print('FAILED to find intended query(s).')
-    elif len(cand_cqs) == len(task['ans']) and all(k in task['ans'] for k in cand_cqs.keys()):
+    elif len(cand_cqs) == len(task['ans']) and all(k in task['ans'] for k in cqs_parsed.keys()):
         print('SUCCESS in finding intended query(s).')
         print('TOTAL ITERATIONS: {}'.format(iters))
     else:
