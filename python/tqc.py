@@ -30,9 +30,12 @@ def tqc_for_task(db, parser, qid, task):
 
     # save target query to temp table
     print('Creating temporary table...')
+    tq_types = ()
     tmp = 'CREATE TEMPORARY TABLE tq {}'.format(tq.query_str)
     for i, proj in enumerate(tq.projs):
-        tmp = re.sub('(SELECT.*)({})(.*FROM)'.format(proj), '\g<1>\g<2> AS p{}\g<3>'.format(i), tmp, count=1)
+        tmp = re.sub('(SELECT.*)({})(?! AS)(.*FROM)'.format(proj), '\g<1>\g<2> AS p{}\g<3>'.format(i), tmp, count=1)
+        attr = db.get_attr(proj)
+        tq_types = tq_types + (attr.type,)
     cursor = db.cursor()
     cursor.execute(tmp)
     cursor.close()
@@ -44,6 +47,7 @@ def tqc_for_task(db, parser, qid, task):
     row = cursor.fetchone()
     cursor.close()
     ans_count = row[0]
+    print('TQ Count: {}'.format(ans_count))
 
     intersect_counts = {}
 
@@ -63,21 +67,35 @@ def tqc_for_task(db, parser, qid, task):
         else:
             check += ' AND '
         check_constraints = []
+        cq_types = ()
         for i, proj in enumerate(cq.projs):
             check_constraints.append('tq.p{} = {}'.format(i, proj))
+            attr = db.get_attr(proj)
+            cq_types = cq_types + (attr.type,)
         check += ' AND '.join(check_constraints)
 
+        if cq_types != tq_types:
+            intersect_counts[cqid] = 0
+            bar.update(1)
+            continue
+
         cursor = db.cursor()
-        cursor.execute(check)
-        row = cursor.fetchone()
-        cursor.close()
-        intersect_counts[cqid] = row[0]
+        try:
+            cursor.execute(check)
+            row = cursor.fetchone()
+            cursor.close()
+            intersect_counts[cqid] = row[0]
+        except Exception as e:
+            if str(e).startswith('3024'):
+                cursor.close()
+                intersect_counts[cqid] = 0
+            else:
+                raise e
         bar.update(1)
     bar.close()
 
     # calculate TQC
     result = tqc(ans_count, intersect_counts)
-    print('TQ Count: {}'.format(ans_count))
     print('Intersects: {}'.format(intersect_counts))
 
     cursor = db.cursor()
@@ -109,7 +127,7 @@ def main():
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
-    timeout = 500000
+    timeout = 100000
     db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=timeout, buffer_pool_size=config.get('database', 'buffer_pool_size'))
     parser = SQLParser(config.get('parser', 'cache_path'))
 
