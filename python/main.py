@@ -86,7 +86,7 @@ def execute_mode(mode, db, parser, qid, task, part_func, aig, greedy):
         # if couldn't find tuple or no cand cqs left
         iters = None
         print('FAILED to find intended query(s).')
-    elif len(cand_cqs) == len(task['ans']) and all(k in task['ans'] for k in cqs_parsed.keys()):
+    elif len(cand_cqs) == len(task['ans']) and all(k in task['ans'] for k in cand_cqs.keys()):
         print('SUCCESS in finding intended query(s).')
         print('TOTAL ITERATIONS: {}'.format(iters))
     else:
