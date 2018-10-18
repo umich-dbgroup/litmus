@@ -54,10 +54,10 @@ class SQLParser(object):
         return query, False
 
     def parse_many(self, query_strs):
-        print("Parsing queries...")
+        print("Parsing CQs...")
         start = time.time()
 
-        bar = tqdm(total=len(query_strs), desc='Parsing queries')
+        bar = tqdm(total=len(query_strs), desc='Parsing CQs')
 
         queries = {}
         from_cache = 0
@@ -78,4 +78,4 @@ class SQLParser(object):
         print("From cache: {}/{}".format(from_cache, len(query_strs)))
         print("Parse errors: {}/{}".format(len(errors), len(query_strs)))
         print("Done parsing [{}s]".format(parse_time))
-        return queries, parse_time
+        return queries
