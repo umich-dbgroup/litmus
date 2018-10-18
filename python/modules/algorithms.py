@@ -193,7 +193,7 @@ class Partition(Base):
                 # check if t exists in any queries timed out
                 for check_cqid in timed_out:
                     if Query.tuple_in_query(self.db, t, part.cqs[check_cqid]):
-                        cqids.append(check_cqid)
+                        cqids.add(check_cqid)
                 d = self.dist(part_set.cqs, t, cqids)
 
             if d > max_dist:
