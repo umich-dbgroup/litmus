@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="main-body">
+  <form class="user-form">
+    <div class="form-group">
+      <label for="token-input">Token</label>
+      <input readonly type="text" class="form-control" id="token-input" placeholder="Token" value="MyToken">
+    </div>
+    <div class="form-group">
+      <label for="username-input">Username</label>
+      <input type="text" class="form-control" id="username-input" placeholder="Username">
+    </div>
+    <div class="form-group">
+      <legend>SQL Experience</legend>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="sql-exp" value="0" id="sql-exp-0">
+        <label class="form-check-label" for="sql-exp-0">None</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="sql-exp" value="1" id="sql-exp-1">
+        <label class="form-check-label" for="sql-exp-1">Some</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="sql-exp" value="2" id="sql-exp-2">
+        <label class="form-check-label" for="sql-exp-2">Expert</label>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-block btn-lg">Start Tasks &gt;</button>
+  </form>
+</div>
+{% endblock %}

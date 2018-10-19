@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+  <div class="task-desc">
+  </div>
+  <div class="system-display">
+    {% if system == 'sql' or system == 'preview' %}
+    <div class="sql-form">
+      <form>
+        <div class="form-group">
+        <h4>Which of the following is the correct target query?</h4>
+        {% for cq in cqs %}
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="sql-opt" value="0" id="sql-opt-{{ cq.id }}">
+            <label class="form-check-label" for="sql-opt-{{ cq.id }}">
+              <code>{{ cq.sql }}</code>
+              {% if system == 'preview' %}
+                <table class="table table-bordered table-sm">
+                  <thead>
+                    {% for i in range(0, cq.projs) %}
+                    <th scope="col">Column {{ i + 1 }}</th>
+                    {% endfor %}
+                  </thead>
+                  <tbody>
+                    {% for r in cq.results %}
+                    <tr>
+                      {% for cell in r %}
+                      <td class="table-light">{{ cell }}</td>
+                      {% endfor %}
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              {% endif %}
+            </label>
+          </div>
+        {% endfor %}
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary btn-lg">Submit &gt;</button>
+        </div>
+      </form>
+    </div>
+    {% elif system == 'qbe' %}
+    <h4>Type as many output examples as desired:</h4>
+    <form>
+      <table class='table table-bordered' id='qbe-table'>
+        <thead>
+          {% for i in range(0, tq.projs) %}
+          <th scope="col">Column {{ i + 1 }}</th>
+          {% endfor %}
+        </thead>
+        <tbody>
+          {% for i in range(0, tq.projs) %}
+          <td class="table-light"></td>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="form-group">
+        <button class="btn btn-secondary" id="add-row">+ Add row</button>
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary btn-lg">Submit &gt;</button>
+      </div>
+      {% elif system == 'litmus' %}
+      <h4>Should your target query produce the following tuple?</h4>
+      <div class="litmus-tuple">
+        <table class='table table-bordered' id='qbe-table'>
+          <thead>
+            <th scope="col">Column 1</th>
+            <th scope="col">Column 2</th>
+            <th scope="col">Column 3</th>
+          </thead>
+          <tbody>
+            <td class="table-light">Daniel Radcliffe</td>
+            <td class="table-light">Chris Columbus</td>
+            <td class="table-light">1991</td>
+          </tbody>
+        </table>
+      </div>
+      <div class="form-group">
+        <button class="btn btn-primary btn-lg">Accept &gt;</button>
+        <button class="btn btn-secondary btn-lg">Reject &gt;</button>
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <button type="button" class="btn btn-danger btn-lg">I Don't Know / Give Up &gt;</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block js %}
+<script>
+  $('#qbe-table').editableTableWidget();
+</script>
+{% endblock %}

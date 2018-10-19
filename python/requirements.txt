@@ -1,5 +1,10 @@
 beautifultable==0.5.2
+Click==7.0
 enum34==1.1.6
+Flask==1.0.2
+ItsDangerous==1.0.0
+Jinja2==2.10
+MarkupSafe==1.0
 mo-collections==2.16.18199
 mo-dots==2.7.18148
 mo-future==2.4.18148
@@ -11,3 +16,4 @@ mysql-connector==2.1.6
 numpy==1.15.1
 pyparsing==2.2.0
 tqdm==4.25.0
+Werkzeug==0.14.1
