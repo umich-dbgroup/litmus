@@ -11,7 +11,7 @@ import traceback
 from beautifultable import BeautifulTable
 
 from modules.aig import AIG
-from modules.algorithms import Base, Partition, GreedyAll, Random
+from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyGuess, Random
 from modules.database import Database
 from modules.excludes import find_excludes
 from modules.mailer import Mailer
