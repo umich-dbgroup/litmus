@@ -427,14 +427,14 @@ class GreedyAll(Base):
         return t_hat, t_hat_cqids, result_meta
 
 class GreedyBB(GreedyAll):
-    def branch(self, Q, C, S):
+    def branch(self, Q, C, tuples):
         results = []
-        for subset in combinations(S, len(S) - 1):
-            X = set(S)
+        for cqids in set(frozenset(item) for item in tuples.values()):
+            X = set(cqids)
             for C_i in C:
-                if subset < C_i:
+                if cqids < C_i:
                     X |= C_i
-            results.append((self.bound(Q, subset), subset, X))
+            results.append((self.bound(Q, cqids), set(cqids), X))
         return results
 
     def bound(self, Q, S):
@@ -516,7 +516,7 @@ class GreedyBB(GreedyAll):
                 v_hat = self.objective(Q, S)
             else:
                 print('Branching..')
-                for item in self.branch(Q, C, S):
+                for item in self.branch(Q, C, tuples):
                     print(item)
                     P.put(item)
                 continue
@@ -526,7 +526,7 @@ class GreedyBB(GreedyAll):
         t_hat_cqids = None
         dist_time = 0
         if T:
-            for t, S in T:
+            for t, S in T.items():
                 self.print_tuple(Q, t, S)
 
             t_hat, t_hat_cqids = T.items()[0]
