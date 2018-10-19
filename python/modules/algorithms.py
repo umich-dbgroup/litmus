@@ -427,6 +427,16 @@ class GreedyAll(Base):
         return t_hat, t_hat_cqids, result_meta
 
 class GreedyBB(GreedyAll):
+    def branch(self, Q, C, S):
+        results = []
+        for subset in combinations(S, len(S) - 1):
+            X = set(S)
+            for C_i in C:
+                if subset < C_i:
+                    X |= C_i
+            results.append(self.bound(Q, subset), subset, X)
+        return results
+
     def bound(self, Q, S):
         S_dict = {}
         diff = {}
@@ -443,10 +453,10 @@ class GreedyBB(GreedyAll):
         else:
             return min(self.bound(Q, C) for C in combinations(S, len(S) - 1))
 
-    def tuples_in_all_cqs(self, tuples, Q):
+    def tuples_in_all_cqs(self, tuples, S):
         results = {}
         for tuple, cqids in tuples.items():
-            if cqids == Q:
+            if cqids == S:
                 results[tuple] = cqids
         return results
 
@@ -497,7 +507,7 @@ class GreedyBB(GreedyAll):
             if B > v_hat:
                 continue
             if self.objective(Q, S) >= v_hat:
-                for item in self.branch(C, S):
+                for item in self.branch(Q, C, S):
                     P.put(item)
                 continue
 
