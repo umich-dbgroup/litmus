@@ -111,8 +111,8 @@ class Base(object):
                 if Query.tuple_in_query(self.db, t, Q[cqid]):
                     S.add(cqid)
 
-            # recalculate dist for this
-            T[t] = self.objective(Q, S)
+            # recalculate objective for this
+            objectives[t] = self.objective(Q, S)
 
             if S == Q.keys():
                 # remove this tuple from all CQ caches
