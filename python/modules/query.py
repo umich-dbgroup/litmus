@@ -3,11 +3,12 @@ import re
 from database import AttributeIntersect
 
 class Query(object):
-    def __init__(self, cqid, query_str, projs, preds):
+    def __init__(self, cqid, query_str, projs, preds, w=1):
         self.cqid = cqid
         self.query_str = query_str
         self.projs = projs
         self.preds = preds
+        self.w = w
 
         # cache tuples on self.tuples
         self.cached = False
@@ -18,6 +19,9 @@ class Query(object):
         self.timed_out = False
         # offset for selecting next tuple from timed out query
         self.offset = 0
+
+    def set_w(self, w):
+        self.w = w
 
     def constrained(self):
         if self.constraints is None:

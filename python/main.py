@@ -11,7 +11,7 @@ import traceback
 from beautifultable import BeautifulTable
 
 from modules.aig import AIG
-from modules.algorithms import Base, Partition, Exhaustive, Random
+from modules.algorithms import Base, Partition, GreedyAll, Random
 from modules.database import Database
 from modules.excludes import find_excludes
 from modules.mailer import Mailer
@@ -51,27 +51,29 @@ def user_feedback(cand_cqs, tuple_cqids, ans):
 
     return new_cqs
 
-def execute_mode(mode, db, parser, qid, task, part_func, aig, greedy):
+def execute_mode(mode, db, parser, qid, task, info, aig, constrain):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
 
     if mode == 'random':
         algorithm = Random(db)
-    elif mode == 'exhaustive':
-        algorithm = Exhaustive(db)
-    elif mode == 'partition':
-        algorithm = Partition(db, part_func=part_func, aig=aig, greedy=greedy)
-    elif mode == 'constrain':
-        algorithm = Partition(db, part_func=part_func, aig=aig, constrain=True, greedy=greedy)
+    elif mode == 'greedyall':
+        algorithm = GreedyAll(db)
+    elif mode == 'greedybb':
+        algorithm = GreedyBB(db, info=info, aig=aig, constrain=constrain)
+    elif mode == 'greedyguess':
+        algorithm = GreedyGuess(db, info=info, aig=aig, constrain=constrain)
 
-    cand_cqs = parser.parse_many(task['cqs'].copy())
+    Q = parser.parse_many(task['cqs'].copy())
+
+    # TODO: if weights desired, iterate through Q and set_w for each
 
     result_metas = []
     iters = 0
-    while len(cand_cqs) > len(task['ans']):
-        print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(cand_cqs), len(task['ans'])))
-        tuple, tuple_cqids, meta = algorithm.execute(cand_cqs)
+    while len(Q) > len(task['ans']):
+        print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(Q), len(task['ans'])))
+        tuple, tuple_cqids, meta = algorithm.execute(Q)
         iters += 1
 
         result_metas.append(meta)
@@ -80,13 +82,13 @@ def execute_mode(mode, db, parser, qid, task, part_func, aig, greedy):
             iters = None
             break
 
-        cand_cqs = user_feedback(cand_cqs, tuple_cqids, task['ans'])
+        Q = user_feedback(Q, tuple_cqids, task['ans'])
 
-    if iters is None or len(cand_cqs) == 0:
+    if iters is None or len(Q) == 0:
         # if couldn't find tuple or no cand cqs left
         iters = None
         print('FAILED to find intended query(s).')
-    elif len(cand_cqs) == len(task['ans']) and all(k in task['ans'] for k in cand_cqs.keys()):
+    elif len(Q) == len(task['ans']) and all(k in task['ans'] for k in Q.keys()):
         print('SUCCESS in finding intended query(s).')
         print('TOTAL ITERATIONS: {}'.format(iters))
     else:
@@ -138,10 +140,10 @@ def save_results(results, out_dir, prefix):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['random', 'exhaustive', 'partition', 'constrain'])
+    argparser.add_argument('mode', choices=['random', 'greedyall', 'greedybb', 'greedyguess'])
+    argparser.add_argument('--constrain', action='store_true')
     argparser.add_argument('--qid', type=int)
-    argparser.add_argument('--part_func', choices=['type', 'range'], default='range')
-    argparser.add_argument('--greedy', action='store_true')
+    argparser.add_argument('--info', choices=['type', 'range'], default='range')
     argparser.add_argument('--email')
     args = argparser.parse_args()
 
@@ -151,20 +153,17 @@ def main():
     db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=config.get('database', 'timeout'), buffer_pool_size=config.get('database', 'buffer_pool_size'))
     parser = SQLParser(config.get('parser', 'cache_path'))
 
-    # only load aig if mode is partition
+    # only load aig if info includes range
     aig = None
-    if args.mode == 'constrain' \
-      or (args.mode == 'partition' and args.part_func == 'range'):
+    if (args.mode == 'greedybb' or args.mode == 'greedyguess') and args.info == 'range'):
         aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
     tasks = load_tasks(config.get('main', 'data_dir'), args.db)
 
-    if args.mode == 'partition':
-        file_prefix = '{}_{}_{}'.format(args.db, args.mode, args.part_func)
+    if args.mode == 'greedybb' or args.mode == 'greedyguess':
+        file_prefix = '{}_{}_{}'.format(args.db, args.mode, args.info)
     else:
         file_prefix = '{}_{}'.format(args.db, args.mode)
-    if args.greedy:
-        file_prefix += '_greedy'
 
     cache_path = os.path.join(config.get('main', 'cache_dir'), file_prefix + '.pkl')
     results = load_cache(cache_path)
@@ -178,7 +177,7 @@ def main():
             if args.qid in results:
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
-                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.part_func, aig, args.greedy)
+                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.info, aig, args.constrain)
                 save_cache(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
@@ -191,7 +190,7 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.part_func, aig, args.greedy)
+                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.constrain)
                     save_cache(results, cache_path)
                 # print_result(qid, results[qid])
 
