@@ -434,7 +434,7 @@ class GreedyBB(GreedyAll):
             for C_i in C:
                 if subset < C_i:
                     X |= C_i
-            results.append(self.bound(Q, subset), subset, X)
+            results.append((self.bound(Q, subset), subset, X))
         return results
 
     def bound(self, Q, S):
@@ -506,10 +506,6 @@ class GreedyBB(GreedyAll):
             (B, S, X) = P.get()
             if B > v_hat:
                 continue
-            if self.objective(Q, S) >= v_hat:
-                for item in self.branch(Q, C, S):
-                    P.put(item)
-                continue
 
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain)
             total_query_time += query_time
@@ -518,6 +514,12 @@ class GreedyBB(GreedyAll):
             if T:
                 T_hat = T
                 v_hat = self.objective(Q, S)
+            else:
+                print('Branching..')
+                for item in self.branch(Q, C, S):
+                    print(item)
+                    P.put(item)
+                continue
 
         min_objective = 0
         t_hat = None
