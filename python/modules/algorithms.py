@@ -514,12 +514,11 @@ class GreedyBB(GreedyAll):
             if T:
                 T_hat = T
                 v_hat = self.objective(Q, S)
-            else:
-                print('Branching..')
-                for item in self.branch(Q, C, tuples):
-                    print(item)
-                    P.put(item)
-                continue
+
+            print('Branching..')
+            for item in self.branch(Q, C, tuples):
+                P.put(item)
+            continue
 
         min_objective = 0
         t_hat = None
