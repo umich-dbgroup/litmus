@@ -495,11 +495,13 @@ class GreedyBB(GreedyAll):
     def execute(self, Q):
         qig_time = self.construct_qig(Q)
         P = PriorityQueue()
+        P_dups = set()
         C, clique_time = self.find_maximal_cliques()
 
         for i, c in enumerate(C):
             print('Clique {}: {}'.format(i,c))
             P.put((self.bound(Q, c), c, c))
+            P_dups.add(frozenset(c))
 
         T_hat = {}
         v_hat = 99999999999
@@ -508,7 +510,8 @@ class GreedyBB(GreedyAll):
 
         while not P.empty():
             (B, S, X) = P.get()
-            if B > v_hat:
+
+            if B >= v_hat:
                 continue
 
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain)
@@ -521,7 +524,9 @@ class GreedyBB(GreedyAll):
             if U:
                 print('Branching..')
                 for item in self.branch(Q, C, U):
-                    P.put(item)
+                    if frozenset(item[1]) not in P_dups:
+                        P.put(item)
+                        P_dups.add(frozenset(item[1]))
                 continue
 
         min_objective = 0
