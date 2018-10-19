@@ -404,7 +404,7 @@ class GreedyAll(Base):
         if tuples:
             objectives, objective_time = self.calc_objectives(Q, tuples)
             comp_time += objective_time
-            objectives, min_objective_time = self.min_objective_tuples(cqs, tuples, objectives, timed_out)
+            objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, timed_out)
             comp_time += min_objective_time
             self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
 
