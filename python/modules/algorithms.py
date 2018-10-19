@@ -85,7 +85,7 @@ class Base(object):
                 S_dict[cqid] = cq
             else:
                 diff[cqid] = cq
-        return abs(sum(q.w for q in S_dict) - sum(q.w for q in diff))
+        return abs(sum(q.w for q in S_dict.values()) - sum(q.w for q in diff.values()))
 
     def calc_objectives(self, Q, T):
         print("Calculating objective values...")
