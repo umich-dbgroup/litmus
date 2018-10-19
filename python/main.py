@@ -155,7 +155,7 @@ def main():
 
     # only load aig if info includes range
     aig = None
-    if (args.mode == 'greedybb' or args.mode == 'greedyguess') and args.info == 'range'):
+    if (args.mode == 'greedybb' or args.mode == 'greedyguess') and args.info == 'range':
         aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
     tasks = load_tasks(config.get('main', 'data_dir'), args.db)
