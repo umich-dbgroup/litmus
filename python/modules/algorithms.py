@@ -436,8 +436,8 @@ class GreedyBB(GreedyAll):
             else:
                 diff[cqid] = cq
 
-        S_w = sum(q.w for q in S_dict)
-        diff_w = sum(q.w for q in diff)
+        S_w = sum(q.w for q in S_dict.values())
+        diff_w = sum(q.w for q in diff.values())
         if diff_w >= S_w:
             return diff_w - S_w
         else:
