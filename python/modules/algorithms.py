@@ -7,7 +7,7 @@ import traceback
 
 from collections import OrderedDict
 from itertools import combinations
-from queue import PriorityQueue
+from Queue import PriorityQueue
 from tqdm import tqdm
 
 from query import Query
