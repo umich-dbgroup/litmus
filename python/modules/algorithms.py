@@ -475,7 +475,7 @@ class GreedyBB(GreedyAll):
     def set_to_dict(self, Q, S):
         S_dict = {}
         for s in S:
-            S_dict[s] = S[s]
+            S_dict[s] = Q[s]
         return S_dict
 
     def execute(self, Q):
