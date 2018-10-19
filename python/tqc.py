@@ -154,6 +154,15 @@ def main():
                 save_tqc_cache(config, args.db, tqcs)
             print('TQ Confusion: {}'.format(tqcs[qid]))
             print()
+        easy = 0
+        hard = 0
+        for qid, tqc in tqcs.items():
+            if tqc <= 0.5:
+                easy += 1
+            else:
+                hard += 1
+        print('TQC <= 0.5: {}'.format(easy))
+        print('TQC > 0.5: {}'.format(hard))
 
 if __name__ == '__main__':
     main()
