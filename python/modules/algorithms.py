@@ -427,7 +427,7 @@ class GreedyAll(Base):
         return t_hat, t_hat_cqids, result_meta
 
 class GreedyBB(GreedyAll):
-    def bound(self, S):
+    def bound(self, Q, S):
         S_dict = {}
         diff = {}
         for cqid, cq in Q.items():
@@ -441,7 +441,7 @@ class GreedyBB(GreedyAll):
         if diff_w >= S_w:
             return diff_w - S_w
         else:
-            return min(self.bound(C) for C in combinations(S, len(S) - 1))
+            return min(self.bound(Q, C) for C in combinations(S, len(S) - 1))
 
     def tuples_in_all_cqs(self, tuples, Q):
         results = {}
@@ -485,7 +485,7 @@ class GreedyBB(GreedyAll):
 
         for i, c in enumerate(C):
             print('Clique {}: {}'.format(i,c))
-            P.put((self.bound(c), c, c))
+            P.put((self.bound(Q, c), c, c))
 
         T_hat = {}
         v_hat = 99999999999
@@ -551,7 +551,7 @@ class GreedyGuess(GreedyBB):
 
         for i, c in enumerate(C):
             print('Clique {}: {}'.format(i, c))
-            C_list.append((self.bound(c), c))
+            C_list.append((self.bound(Q, c), c))
         C_list.sort()
 
         total_query_time = 0
