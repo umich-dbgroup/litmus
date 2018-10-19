@@ -32,7 +32,7 @@ class Base(object):
         }
         return None, None, result_meta
 
-    def run_cqs(self, cqs, msg_append='', qig=None):
+    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False):
         valid_cqs = []
         timed_out = []
         sql_errors = []
@@ -47,7 +47,7 @@ class Base(object):
                 if not isinstance(cq, Query):
                     raise Exception('CQ should be a Query object.')
 
-                if qig:
+                if constrain:
                     cq.constrain(qig)
                 else:
                     cq.unconstrain()
