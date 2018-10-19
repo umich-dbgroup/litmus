@@ -453,12 +453,16 @@ class GreedyBB(GreedyAll):
         else:
             return min(self.bound(Q, C) for C in combinations(S, len(S) - 1))
 
-    def tuples_in_all_cqs(self, tuples, S):
-        results = {}
+    def tuples_in_all_and_less_cqs(self, tuples, S):
+        all_cqs = {}
+        less_cqs = {}
+
         for tuple, cqids in tuples.items():
             if cqids == S:
-                results[tuple] = cqids
-        return results
+                all_cqs[tuple] = cqids
+            if cqids < S:
+                less_cqs[tuple] = cqids
+        return all_cqs, less_cqs
 
     def construct_qig(self, Q):
         print('Constructing QIG with information: {}'.format(self.info))
@@ -510,15 +514,15 @@ class GreedyBB(GreedyAll):
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain)
             total_query_time += query_time
 
-            T = self.tuples_in_all_cqs(tuples, S)
+            T, U = self.tuples_in_all_and_less_cqs(tuples, S)
             if T:
                 T_hat = T
                 v_hat = self.objective(Q, S)
-
-            print('Branching..')
-            for item in self.branch(Q, C, tuples):
-                P.put(item)
-            continue
+            if U:
+                print('Branching..')
+                for item in self.branch(Q, C, U):
+                    P.put(item)
+                continue
 
         min_objective = 0
         t_hat = None
