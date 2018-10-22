@@ -120,6 +120,7 @@ def main():
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
+    tqcs = {}
     if args.tqc_min or args.tqc_max:
         tqcs = load_tqc_cache(config, args.db)
 
