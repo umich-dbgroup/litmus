@@ -15,7 +15,7 @@ from partitions import PartSet
 from qig import QIGByType, QIGByRange
 
 TOP_TUPLES = 5
-BOUND_LIMIT = 20
+BOUND_LIMIT = 15
 
 class Base(object):
     def __init__(self, db, aig=None, info=None, constrain=False):
@@ -579,7 +579,7 @@ class GreedyGuess(GreedyBB):
         for t, cqids in tuples.items():
             exclude = False
             for j in range(i + 1, len(C)):
-                if cqids <= C[j]:
+                if cqids <= C[j][1]:
                     exclude = True
                     break
             if not exclude:
@@ -600,13 +600,21 @@ class GreedyGuess(GreedyBB):
         total_query_time = 0
         future_check_time = 0
 
+        all_tuples = {}
+
         for i, C_info in enumerate(C_list):
             B, C_i = C_info
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain)
             total_query_time += query_time
 
+            for t, cqids in tuples.items():
+                if t in all_tuples:
+                    all_tuples[t].update(cqids)
+                else:
+                    all_tuples[t] = cqids
+
             start = time.time()
-            T = self.tuples_not_in_future_cliques(C, tuples, i)
+            T = self.tuples_not_in_future_cliques(C_list, all_tuples, i)
             future_check_time += time.time() - start
 
             if T:
@@ -615,6 +623,8 @@ class GreedyGuess(GreedyBB):
 
                 t_hat, min_objective = objectives.items()[0]
                 t_hat_cqids = tuples[t_hat]
+
+                self.print_tuple(Q, t_hat, t_hat_cqids)
 
                 result_meta = {
                     'objective': min_objective,
