@@ -289,6 +289,8 @@ class Database(object):
 
         rel_alias, attr_name = frag.split('.')
         m = re.match('([A-Za-z_]+)_[0-9]+', rel_alias)
+        if not m:
+            m = re.match('([A-Za-z_]+)', rel_alias)
         if m:
             rel_name = m.group(1)
             return self.relations[rel_name].attrs[attr_name]

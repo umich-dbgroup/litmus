@@ -35,30 +35,33 @@ class AIG(object):
 
         attrs = self.db.get_all_attrs()
         for i, attr1 in enumerate(attrs):
+            if attr1 not in self.vertices:
+                attr1_v = self.add_vertex(attr1)
+            else:
+                attr1_v = self.vertices[attr1]
             for j in range(i+1, len(attrs)):
                 attr2 = attrs[j]
+
+                if attr2 not in self.vertices:
+                    attr2_v = self.add_vertex(attr2)
+                else:
+                    attr2_v = self.vertices[attr2]
 
                 print('Finding intersections for {}, {}...'.format(attr1, attr2))
                 intersects = self.db.find_intersects(attr1, attr2)
                 if intersects:
-                    self.add_edge(attr1, attr2, intersects)
+                    self.add_edge(attr1_v, attr2_v, intersects)
+
         print('Done generating AIG. [{}s]'.format(time.time() - start))
 
     def add_vertex(self, attr):
         self.vertices[attr] = AIGVertex(attr)
+        return self.vertices[attr]
 
     def get_vertex(self, attr):
         return self.vertices[attr]
 
-    def add_edge(self, frm_attr, to_attr, intersect):
-        if frm_attr not in self.vertices:
-            self.add_vertex(frm_attr)
-        if to_attr not in self.vertices:
-            self.add_vertex(to_attr)
-
-        frm = self.get_vertex(frm_attr)
-        to = self.get_vertex(to_attr)
-
+    def add_edge(self, frm, to, intersect):
         e = AIGEdge(intersect)
         frm.add_neighbor(to, e)
         to.add_neighbor(frm, e)
