@@ -76,6 +76,7 @@ def execute_mode(mode, db, parser, qid, task, info, aig, constrain):
         tuple, tuple_cqids, meta = algorithm.execute(Q)
         iters += 1
 
+        print(meta)
         result_metas.append(meta)
 
         if not tuple:
