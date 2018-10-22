@@ -93,8 +93,14 @@ class Base(object):
         start = time.time()
 
         objectives = {}
+        memo = {}
         for t, S in T.items():
-            objectives[t] = self.objective(Q, S)
+            S_key = frozenset(S)
+            if S_key in memo:
+                objectives[t] = memo[S_key]
+            else:
+                objectives[t] = self.objective(Q, S)
+                memo[S_key] = objectives[t]
 
         sorted_objectives = OrderedDict(sorted(objectives.items(), key=lambda t: t[1]))
         objective_time = time.time() - start
@@ -621,7 +627,7 @@ class GreedyGuess(GreedyBB):
                 objectives, min_objective_time = self.min_objective_tuples(Q, T, objectives, timed_out)
 
                 t_hat, min_objective = objectives.items()[0]
-                t_hat_cqids = tuples[t_hat]
+                t_hat_cqids = all_tuples[t_hat]
 
                 self.print_tuple(Q, t_hat, t_hat_cqids)
 
