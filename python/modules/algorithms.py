@@ -523,6 +523,8 @@ class GreedyBB(GreedyAll):
         v_hat = 99999999999
 
         total_query_time = 0
+        total_objective_time = 0
+        total_branch_time = 0
 
         while not P.empty():
             (B, S, X) = P.get()
@@ -533,16 +535,21 @@ class GreedyBB(GreedyAll):
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain)
             total_query_time += query_time
 
+            start = time.time()
             T, U = self.tuples_in_all_and_less_cqs(tuples, S)
             if T:
                 T_hat = T
                 v_hat = self.objective(Q, S)
+            total_objective_time += time.time() - start
+
             if U:
+                start = time.time()
                 print('Branching..')
                 for item in self.branch(Q, C, U):
                     if frozenset(item[1]) not in P_dups:
                         P.put(item)
                         P_dups.add(frozenset(item[1]))
+                total_branch_time += time.time() - start
                 continue
 
         min_objective = 0
@@ -556,7 +563,7 @@ class GreedyBB(GreedyAll):
             t_hat, t_hat_cqids = T.items()[0]
             min_objective = self.objective(Q, t_hat_cqids)
 
-        comp_time = qig_time + clique_time + total_query_time
+        comp_time = qig_time + clique_time + total_objective_time + total_branch_time
 
         result_meta = {
             'objective': min_objective,
@@ -591,13 +598,17 @@ class GreedyGuess(GreedyBB):
         C_list.sort()
 
         total_query_time = 0
+        future_check_time = 0
 
         for i, C_info in enumerate(C_list):
             B, C_i = C_info
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain)
             total_query_time += query_time
 
+            start = time.time()
             T = self.tuples_not_in_future_cliques(C, tuples, i)
+            future_check_time += time.time() - start
+
             if T:
                 objectives, calc_objective_time = self.calc_objectives(Q, T)
                 objectives, min_objective_time = self.min_objective_tuples(Q, T, objectives, timed_out)
@@ -609,7 +620,7 @@ class GreedyGuess(GreedyBB):
                     'objective': min_objective,
                     'total_cq': len(Q),
                     'query_time': total_query_time,
-                    'comp_time': calc_objective_time + min_objective_time
+                    'comp_time': calc_objective_time + min_objective_time + future_check_time
                 }
                 return t_hat, t_hat_cqids, result_meta
 
