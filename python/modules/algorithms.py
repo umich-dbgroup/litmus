@@ -550,17 +550,16 @@ class GreedyBB(GreedyAll):
                         P.put(item)
                         P_dups.add(frozenset(item[1]))
                 total_branch_time += time.time() - start
-                continue
 
         min_objective = 0
         t_hat = None
         t_hat_cqids = None
         dist_time = 0
-        if T:
-            for t, S in T.items()[0:TOP_TUPLES]:
+        if T_hat:
+            for t, S in T_hat.items()[0:TOP_TUPLES]:
                 self.print_tuple(Q, t, S)
 
-            t_hat, t_hat_cqids = T.items()[0]
+            t_hat, t_hat_cqids = T_hat.items()[0]
             min_objective = self.objective(Q, t_hat_cqids)
 
         comp_time = qig_time + clique_time + total_objective_time + total_branch_time
