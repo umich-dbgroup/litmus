@@ -668,7 +668,7 @@ class Random(Base):
 
                 if len(cq_tuples) > 0:
                     valid_cqs.append(cqid)
-                    t = random.choice(set(cq_tuples))
+                    t = random.choice(list(cq_tuples))
                     tuples[t] = set([cqid])
                     break
             except Exception as e:
