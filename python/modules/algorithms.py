@@ -434,10 +434,11 @@ class GreedyBB(GreedyAll):
             for C_i in C:
                 if cqids < C_i:
                     X |= C_i
-            results.append((self.bound(Q, cqids), set(cqids), X))
+            results.append((self.bound(Q, cqids, {}), set(cqids), X))
         return results
 
-    def bound(self, Q, S):
+    # M is a dictionary for memoizing intermediate results
+    def bound(self, Q, S, M):
         S_dict = {}
         diff = {}
         for cqid, cq in Q.items():
@@ -448,10 +449,21 @@ class GreedyBB(GreedyAll):
 
         S_w = sum(q.w for q in S_dict.values())
         diff_w = sum(q.w for q in diff.values())
+
+        S_key = frozenset(S)
+
         if diff_w >= S_w:
-            return diff_w - S_w
+            M[S_key] = diff_w - S_w
         else:
-            return min(self.bound(Q, C) for C in combinations(S, len(S) - 1))
+            vals = []
+            for C in combinations(S, len(S) - 1):
+                C_key = frozenset(C)
+                if C_key in M:
+                    vals.append(M[C_key])
+                else:
+                    vals.append(self.bound(Q, C, M))
+            M[S_key] = min(vals)
+        return M[S_key]
 
     def tuples_in_all_and_less_cqs(self, tuples, S):
         all_cqs = {}
@@ -500,7 +512,7 @@ class GreedyBB(GreedyAll):
 
         for i, c in enumerate(C):
             print('Clique {}: {}'.format(i,c))
-            P.put((self.bound(Q, c), c, c))
+            P.put((self.bound(Q, c, {}), c, c))
             P_dups.add(frozenset(c))
 
         T_hat = {}
@@ -571,7 +583,7 @@ class GreedyGuess(GreedyBB):
 
         for i, c in enumerate(C):
             print('Clique {}: {}'.format(i, c))
-            C_list.append((self.bound(Q, c), c))
+            C_list.append((self.bound(Q, c, {}), c))
         C_list.sort()
 
         total_query_time = 0
