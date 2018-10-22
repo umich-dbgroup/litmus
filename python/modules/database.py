@@ -89,6 +89,7 @@ class Attribute(object):
         self.rel = None
         self.name = name
         self.type = type      # text, num
+        self.length = None    # for text only
         self.pk = False
         self.unique_count = None     # unique vals count
 
@@ -98,6 +99,9 @@ class Attribute(object):
 
     def set_rel(self, rel):
         self.rel = rel
+
+    def set_length(self, length):
+        self.length = length
 
     def set_range(self, min, max):
         self.min = min
@@ -150,11 +154,17 @@ class Relation(object):
 
 def convert_mysql_type(mysql_type):
     if mysql_type.startswith('int') or mysql_type.endswith('int') or mysql_type.startswith('float') or mysql_type.startswith('double') or mysql_type.startswith('decimal') or mysql_type.startswith('numeric'):
-        return 'num'
-    elif mysql_type == 'text' or mysql_type.startswith('varchar') or mysql_type.startswith('char') or mysql_type.startswith('enum'):
-        return 'text'
+        return 'num', None
+    elif mysql_type.startswith('varchar'):
+        m = re.match('varchar\(([0-9]+)\)', mysql_type)
+        return 'text', int(m.group(1))
+    elif mysql_type.startswith('char'):
+        m = re.match('char\(([0-9]+)\)', mysql_type)
+        return 'text', int(m.group(1))
+    elif mysql_type == 'text' or mysql_type.startswith('enum'):
+        return 'text', None
     else:
-        return mysql_type
+        return mysql_type, None
 
 class Database(object):
     # relations to ignore from db
@@ -207,8 +217,11 @@ class Database(object):
             attrs = {}
             for r in cursor:
                 attr_name = r[0]
-                attr_type = convert_mysql_type(r[1])
+                attr_type, attr_length = convert_mysql_type(r[1])
                 attrs[attr_name] = Attribute(attr_name, attr_type)
+
+                if attr_length:
+                    attrs[attr_name].set_length(attr_length)
 
                 if r[3].startswith('PRI'):
                     attrs[attr_name].set_pk(True)
@@ -285,8 +298,9 @@ class Database(object):
     def create_tmp_table_for_attr(self, attr):
         tmp_name = 'distinct_{}_{}'.format(attr.rel.name, attr.name)
 
+        index_len = min(15, attr.length)
         cursor = self.cursor()
-        query_str = 'CREATE TEMPORARY TABLE IF NOT EXISTS {} (INDEX ({}(15))) SELECT DISTINCT {} FROM {}'.format(tmp_name, attr.name, attr.name, attr.rel.name)
+        query_str = 'CREATE TEMPORARY TABLE IF NOT EXISTS {} (INDEX ({}({}))) SELECT DISTINCT {} FROM {}'.format(tmp_name, attr.name, index_len, attr.name, attr.rel.name)
         cursor.execute(query_str)
         cursor.close()
 
@@ -298,7 +312,7 @@ class Database(object):
         first_alias = '{}.{}'.format(first_rel_alias, first.name)
 
         second_rel_alias = second.rel.name[0]
-        if second_rel_alias == first_rel_alias:
+        if second_rel_alias.lower() == first_rel_alias.lower():
             # extend second rel name if it coincides with first rel
             second_rel_alias = second.rel.name[0:4]
         second_alias = '{}.{}'.format(second_rel_alias, second.name)
