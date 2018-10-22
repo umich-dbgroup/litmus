@@ -15,6 +15,7 @@ from partitions import PartSet
 from qig import QIGByType, QIGByRange
 
 TOP_TUPLES = 5
+BOUND_LIMIT = 20
 
 class Base(object):
     def __init__(self, db, aig=None, info=None, constrain=False):
@@ -439,6 +440,9 @@ class GreedyBB(GreedyAll):
 
     # M is a dictionary for memoizing intermediate results
     def bound(self, Q, S, M):
+        if len(S) > BOUND_LIMIT:
+            return 0
+
         S_dict = {}
         diff = {}
         for cqid, cq in Q.items():
