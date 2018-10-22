@@ -550,7 +550,7 @@ class GreedyBB(GreedyAll):
         t_hat_cqids = None
         dist_time = 0
         if T:
-            for t, S in T.items():
+            for t, S in T.items()[0:TOP_TUPLES]:
                 self.print_tuple(Q, t, S)
 
             t_hat, t_hat_cqids = T.items()[0]
