@@ -592,7 +592,8 @@ class GreedyGuess(GreedyBB):
 
         total_query_time = 0
 
-        for i, C_i in enumerate(C_list):
+        for i, C_info in enumerate(C_list):
+            B, C_i = C_info
             tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain)
             total_query_time += query_time
 
