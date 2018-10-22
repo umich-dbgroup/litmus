@@ -652,7 +652,7 @@ class Random(Base):
         r_keys = list(Q.keys())
         random.shuffle(r_keys)
 
-        result = None
+        tuples = {}
         start = time.time()
         while r_keys:
             cqid = r_keys.pop()
@@ -668,7 +668,8 @@ class Random(Base):
 
                 if len(cq_tuples) > 0:
                     valid_cqs.append(cqid)
-                    result = random.choice(list(cq_tuples))
+                    t = random.choice(set(cq_tuples))
+                    tuples[t] = set([cqid])
                     break
             except Exception as e:
                 if str(e).startswith('Timeout'):
@@ -687,9 +688,7 @@ class Random(Base):
         min_objective = 0
         dist_time = 0
         min_objective_time = 0
-        if result:
-            tuples = {}
-            tuples[result] = list(valid_cqs)
+        if tuples:
             objectives, calc_objective_time = self.calc_objectives(Q, tuples)
 
             # need to check not-yet-executed queries and any timed-out queries
