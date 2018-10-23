@@ -37,6 +37,7 @@ def tqc_for_task(db, parser, qid, task):
         attr = db.get_attr(proj)
         tq_types = tq_types + (attr.type,)
     cursor = db.cursor()
+    tmp = re.sub('SELECT (.*)', 'SELECT DISTINCT \g<1>', tmp)
     cursor.execute(tmp)
     cursor.close()
     print('Done creating temporary table.')
@@ -61,7 +62,7 @@ def tqc_for_task(db, parser, qid, task):
 
         cq, cached = parser.parse_one(cqid, cq_str)
 
-        check = re.sub('(SELECT) (.*) (FROM)', '\g<1> COUNT(\g<2>) \g<3> tq,', cq_str, count=1)
+        check = re.sub('(SELECT) (DISTINCT )?(.*) (FROM)', '\g<1> COUNT(DISTINCT \g<3>) \g<4> tq,', cq_str, count=1)
         if 'where' not in check.lower():
             check += ' WHERE '
         else:
