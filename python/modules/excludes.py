@@ -4,6 +4,7 @@ import json
 import os
 
 NON_SPJ_WORDS = [
+    'order by',
     'group by',
     'count(',
     'max(',
