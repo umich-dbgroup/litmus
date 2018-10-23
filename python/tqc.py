@@ -24,6 +24,10 @@ def tqc(ans_count, intersect_counts):
 def tqc_for_task(db, parser, qid, task):
     assert(len(task['ans']) == 1)
 
+    if len(task['cqs']) == 1:
+        print('Only one CQ.')
+        return 0
+
     ans_id = task['ans'][0]
     tq_str = task['cqs'][ans_id]
     tq, cached = parser.parse_one(ans_id, tq_str)
