@@ -216,7 +216,7 @@ class Database(object):
             cursor.execute('SHOW COLUMNS FROM {}'.format(rel_name))
             attrs = {}
             for r in cursor:
-                attr_name = r[0]
+                attr_name = r[0].lower()
                 attr_type, attr_length = convert_mysql_type(r[1])
                 attrs[attr_name] = Attribute(attr_name, attr_type)
 
