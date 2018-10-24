@@ -79,14 +79,14 @@ class Base(object):
         return tuples, valid_cqs, timed_out, sql_errors, query_time
 
     def objective(self, Q, S):
-        S_dict = {}
-        diff = {}
+        S_w = 0
+        diff_w = 0
         for cqid, cq in Q.items():
             if cqid in S:
-                S_dict[cqid] = cq
+                S_w += cq.w
             else:
-                diff[cqid] = cq
-        return abs(sum(q.w for q in S_dict.values()) - sum(q.w for q in diff.values()))
+                diff_w += cq.w
+        return abs(S_w - diff_w)
 
     def calc_objectives(self, Q, T):
         print("Calculating objective values...")
@@ -446,16 +446,13 @@ class GreedyBB(GreedyAll):
 
     # M is a dictionary for memoizing intermediate results
     def bound(self, Q, S, M):
-        S_dict = {}
-        diff = {}
+        S_w = 0
+        diff_w = 0
         for cqid, cq in Q.items():
             if cqid in S:
-                S_dict[cqid] = cq
+                S_w += cq.w
             else:
-                diff[cqid] = cq
-
-        S_w = sum(q.w for q in S_dict.values())
-        diff_w = sum(q.w for q in diff.values())
+                diff_w += cq.w
 
         S_key = frozenset(S)
 
