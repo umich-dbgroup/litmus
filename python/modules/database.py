@@ -287,7 +287,7 @@ class Database(object):
         if not (isinstance(frag, str) or isinstance(frag, unicode)) or '.' not in frag:
             return None
 
-        rel_alias, attr_name = frag.split('.')
+        rel_alias, attr_name = frag.lower().split('.')
         m = re.match('([A-Za-z_]+)_[0-9]+', rel_alias)
         if not m:
             m = re.match('([A-Za-z_]+)', rel_alias)
