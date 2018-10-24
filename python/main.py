@@ -65,7 +65,7 @@ def execute_mode(mode, db, parser, qid, task, info, aig, constrain):
     elif mode == 'greedyguess':
         algorithm = GreedyGuess(db, info=info, aig=aig, constrain=constrain)
 
-    Q = parser.parse_many(task['cqs'].copy())
+    Q = parser.parse_many(qid, task['cqs'].copy())
 
     # TODO: if weights desired, iterate through Q and set_w for each
 
@@ -152,7 +152,7 @@ def main():
     config.read('config.ini')
 
     db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=config.get('database', 'timeout'), buffer_pool_size=config.get('database', 'buffer_pool_size'))
-    parser = SQLParser(config.get('parser', 'cache_path'))
+    parser = SQLParser(args.db, config.get('parser', 'cache_dir'))
 
     # only load aig if info includes range
     aig = None

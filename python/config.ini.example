@@ -13,7 +13,7 @@ timeout = 15000
 buffer_pool_size = 2147483648
 
 [parser]
-cache_path = cache/parser.cache
+cache_dir = cache/parser/
 
 [aig]
 dir = aig
