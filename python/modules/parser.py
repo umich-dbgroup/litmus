@@ -24,6 +24,8 @@ class SQLParser(object):
     def update_cache(self, query):
         copy = Query(query.cqid, query.query_str, query.projs, query.preds)
         self.cache[query.query_str] = copy
+
+    def flush_cache(self):
         pickle.dump(self.cache, open(self.cache_path, 'wb'))
 
     def parse_one(self, cqid, query_str):
@@ -74,6 +76,11 @@ class SQLParser(object):
                 errors.append(cqid)
             bar.update(1)
         bar.close()
+
+        print('Flushing cache...')
+        self.flush_cache()
+        print('Done flushing cache.')
+
         parse_time = time.time() - start
         print("From cache: {}/{}".format(from_cache, len(query_strs)))
         print("Parse errors: {}/{}".format(len(errors), len(query_strs)))
