@@ -13,6 +13,6 @@ python -u main.py $db greedyguess --info=range --email=chrisjbaik@gmail.com | te
 
 for i in {1..5}
 do
-  echo "rm cache/${db}_random.pkl"
-  echo "python -u main.py $db random --email=chrisjbaik@gmail.com | tee ${db}_random.out"
+  rm cache/${db}_random.pkl
+  python -u main.py $db random --email=chrisjbaik@gmail.com | tee ${db}_random.out
 done
