@@ -446,9 +446,6 @@ class GreedyBB(GreedyAll):
 
     # M is a dictionary for memoizing intermediate results
     def bound(self, Q, S, M):
-        if len(S) > BOUND_LIMIT:
-            return 0
-
         S_dict = {}
         diff = {}
         for cqid, cq in Q.items():
@@ -465,6 +462,9 @@ class GreedyBB(GreedyAll):
         if diff_w >= S_w:
             M[S_key] = diff_w - S_w
         else:
+            if len(S) > BOUND_LIMIT:
+                return 0
+
             vals = []
             for C in combinations(S, len(S) - 1):
                 C_key = frozenset(C)
