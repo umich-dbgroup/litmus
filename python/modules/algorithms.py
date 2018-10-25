@@ -33,17 +33,22 @@ class Base(object):
         }
         return None, None, result_meta
 
-    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False):
+    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False, tuples={}, executed=set()):
         valid_cqs = []
         timed_out = []
         sql_errors = []
-        tuples = {}
         cached = []
 
         bar = tqdm(total=len(cqs), desc='Running CQs{}'.format(msg_append))
 
         start = time.time()
         for cqid, cq in cqs.items():
+            # executed contains all cqs for which tuples contains results
+            if cqid in executed:
+                bar.update(1)
+                cached.append(cqid)
+                continue
+
             try:
                 if not isinstance(cq, Query):
                     raise Exception('CQ should be a Query object.')
@@ -142,7 +147,7 @@ class Base(object):
         print("Top {} tuples:".format(k))
         for t, objective in objectives.items()[0:k]:
             self.print_tuple(Q, t, T[t])
-            
+
     def print_stats(self, cq_count, timeout_count, sql_errors, valid_count, cached_count):
         print('Executed CQs: {}'.format(cq_count))
         print('From Cache: {}'.format(cached_count))
@@ -247,13 +252,21 @@ class GreedyBB(GreedyAll):
         print("Done constructing QIG [{}s]".format(qig_time))
         return qig_time
 
-    def find_maximal_cliques(self):
+    def find_maximal_cliques(self, Q):
         print('Finding maximal cliques...')
         start = time.time()
-        C = self.qig.find_maximal_cliques()
+
+        if hasattr(self, 'cliques'):
+            new_cliques = []
+            for C_i in self.cliques:
+                new_C_i = C_i & set(Q.keys())
+                if new_C_i:
+                    new_cliques.append(new_C_i)
+        else:
+            self.cliques = self.qig.find_maximal_cliques()
         clique_time = time.time() - start
         print('Done finding maximal cliques [{}s]'.format(clique_time))
-        return C, clique_time
+        return self.cliques, clique_time
 
     def set_to_dict(self, Q, S):
         S_dict = {}
@@ -265,7 +278,7 @@ class GreedyBB(GreedyAll):
         qig_time = self.construct_qig(Q)
         P = PriorityQueue()
         P_dups = set()
-        C, clique_time = self.find_maximal_cliques()
+        C, clique_time = self.find_maximal_cliques(Q)
 
         for i, c in enumerate(C):
             print('Clique {}: {}'.format(i,c))
@@ -279,14 +292,19 @@ class GreedyBB(GreedyAll):
         total_objective_time = 0
         total_branch_time = 0
 
+        tuples = {}
+        executed = set()
+
         while not P.empty():
             (B, S, X) = P.get()
 
             if B >= v_hat:
                 continue
 
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain)
-            total_query_time += query_time
+            if not X <= executed:
+                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain, tuples=tuples, executed=executed)
+                executed |= X
+                total_query_time += query_time
 
             start = time.time()
             T, U = self.tuples_in_all_and_less_cqs(tuples, S)
@@ -297,7 +315,6 @@ class GreedyBB(GreedyAll):
 
             if U:
                 start = time.time()
-                print('Branching..')
                 for item in self.branch(Q, C, U):
                     if frozenset(item[1]) not in P_dups:
                         P.put(item)
@@ -352,21 +369,19 @@ class GreedyGuess(GreedyBB):
         total_query_time = 0
         future_check_time = 0
 
-        all_tuples = {}
+        tuples = {}
+        executed = set()
 
         for i, C_info in enumerate(C_list):
             B, C_i = C_info
-            tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain)
-            total_query_time += query_time
 
-            for t, cqids in tuples.items():
-                if t in all_tuples:
-                    all_tuples[t].update(cqids)
-                else:
-                    all_tuples[t] = cqids
+            if not C_i <= executed:
+                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain, tuples=tuples, executed=executed)
+                executed |= C_i
+                total_query_time += query_time
 
             start = time.time()
-            T = self.tuples_not_in_future_cliques(C_list, all_tuples, i)
+            T = self.tuples_not_in_future_cliques(C_list, tuples, i)
             future_check_time += time.time() - start
 
             if T:
@@ -374,7 +389,7 @@ class GreedyGuess(GreedyBB):
                 objectives, min_objective_time = self.min_objective_tuples(Q, T, objectives, timed_out)
 
                 t_hat, min_objective = objectives.items()[0]
-                t_hat_cqids = all_tuples[t_hat]
+                t_hat_cqids = tuples[t_hat]
 
                 self.print_tuple(Q, t_hat, t_hat_cqids)
 
