@@ -352,7 +352,7 @@ class GreedyGuess(GreedyBB):
 
     def execute(self, Q):
         qig_time = self.construct_qig(Q)
-        C, clique_time = self.find_maximal_cliques()
+        C, clique_time = self.find_maximal_cliques(Q)
 
         C_list = []
 
