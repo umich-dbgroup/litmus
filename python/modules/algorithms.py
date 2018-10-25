@@ -256,6 +256,7 @@ class GreedyBB(GreedyAll):
                 new_C_i = C_i & set(Q.keys())
                 if new_C_i:
                     new_cliques.append(new_C_i)
+            self.cliques = new_cliques
         else:
             self.cliques = self.qig.find_maximal_cliques()
         clique_time = time.time() - start
