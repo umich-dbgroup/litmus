@@ -17,17 +17,23 @@ class QIG(object):
         raise NotImplementedError
 
     def combine_pos_qigs(self):
-        vlist = self.vertices.items()
-        for i, v1item in enumerate(self.vertices.items()):
-            for j in range(i+1, len(self.vertices)):
-                v2item = self.vertices.items()[j]
+        first_posqig = self.posqigs[0]
 
-                v1id = v1item[0]
-                v2id = v2item[0]
+        explored = set()
+        for i, v1item in enumerate(self.vertices.items()):
+            v1id, v1 = v1item
+
+            for v2id in first_posqig.vertices[v1id].get_adjacent():
+                if v2id in explored:
+                    continue
+
+                v2 = self.vertices[v2id]
 
                 # only add an edge between two CQs if all PosQIGs have one
                 if all(g.has_edge(v1id, v2id) for g in self.posqigs.values()):
                     self.add_edge(v1id, v2id)
+
+            explored.add(v1id)
 
     def init_vertices(self):
         raise NotImplementedError
@@ -246,12 +252,15 @@ class QIGByRange(QIGByType):
         super(QIGByRange, self).__init__(db, cqs)
 
     def construct_pos_qigs(self):
+        attr_maps = {}      # pos -> attrs -> cqids
         for cqid, cq in self.cqs.items():
             cq_attrs = self.get_vertex(cqid).meta['attrs']
             cq_types = self.get_vertex(cqid).meta['types']
             for pos, attr in enumerate(cq_attrs):
                 if pos not in self.posqigs:
                     self.posqigs[pos] = PosQIG(self.db, pos)
+                if pos not in attr_maps:
+                    attr_maps[pos] = {}
                 posqig = self.posqigs[pos]
 
                 posqig.add_vertex(cqid, {
@@ -259,27 +268,36 @@ class QIGByRange(QIGByType):
                     'type': type
                 })
 
-                for vid, v in posqig.vertices.items():
-                    # ignore if checking same vertex we just added
-                    if vid == cqid:
-                        continue
+                if attr not in attr_maps[pos]:
+                    attr_maps[pos][attr] = set()
+                attr_maps[pos][attr].add(cqid)
 
-                    # add edge only if type is same and they intersect (or they're the same attribute)
-                    same_attr = v.meta['attr'] == attr
-                    e = self.aig.get_vertex(v.meta['attr']).get_edge(attr)
-                    if same_attr:
-                        if attr.type == 'text':
-                            posqig.add_edge(cqid, vid, {
-                                'intersect': AllAttributeIntersect('text')
-                            })
-                        elif attr.type == 'num':
-                            posqig.add_edge(cqid, vid, {
-                                'intersect': AttributeIntersect('num', min=attr.min, max=attr.max)
-                            })
-                    elif type == v.meta['type'] and e:
-                        posqig.add_edge(cqid, vid, {
-                            'intersect': e.intersect
+        for pos, posqig in self.posqigs.items():
+            for v1id, v1 in posqig.vertices.items():
+                v1attr = v1.meta['attr']
+
+                # same attribute case
+                for v2id in attr_maps[pos][v1attr]:
+                    if v1id == v2id:
+                        continue
+                    if v1attr.type == 'text':
+                        posqig.add_edge(v1id, v2id, {
+                            'intersect': AllAttributeIntersect('text')
                         })
+                    elif v1attr.type == 'num':
+                        posqig.add_edge(v1id, v2id, {
+                            'intersect': AttributeIntersect('num', min=v1attr.min, max=v1attr.max)
+                        })
+
+                # intersecting attributes case
+                v1aig = self.aig.get_vertex(v1attr)
+                for v2attr in v1aig.get_adjacent():
+                    if v2attr in attr_maps[pos]:
+                        e = v1aig.get_edge(v2attr)
+                        for v2id in attr_maps[pos][v2attr]:
+                            posqig.add_edge(v1id, v2id, {
+                                'intersect': e.intersect
+                            })
 
     def get_meta(self, cqids):
         if not cqids:
