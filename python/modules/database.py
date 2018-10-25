@@ -206,8 +206,8 @@ class Database(object):
         cursor.execute('SHOW TABLES')
         rel_names = []
         for r in cursor:
-            if r[0] not in self.IGNORE_RELS:
-                rel_names.append(r[0])
+            if r[0].lower() not in self.IGNORE_RELS:
+                rel_names.append(r[0].lower())
         cursor.close()
 
         # get attributes for each relation, generate Relations
