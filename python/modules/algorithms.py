@@ -33,7 +33,7 @@ class Base(object):
         }
         return None, None, result_meta
 
-    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False, tuples={}, executed=set()):
+    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False, tuples={}):
         valid_cqs = []
         timed_out = []
         sql_errors = []
@@ -43,12 +43,6 @@ class Base(object):
 
         start = time.time()
         for cqid, cq in cqs.items():
-            # executed contains all cqs for which tuples contains results
-            if cqid in executed:
-                bar.update(1)
-                cached.append(cqid)
-                continue
-
             try:
                 if not isinstance(cq, Query):
                     raise Exception('CQ should be a Query object.')
@@ -302,7 +296,7 @@ class GreedyBB(GreedyAll):
                 continue
 
             if not X <= executed:
-                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain, tuples=tuples, executed=executed)
+                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain, tuples=tuples)
                 executed |= X
                 total_query_time += query_time
 
@@ -376,7 +370,7 @@ class GreedyGuess(GreedyBB):
             B, C_i = C_info
 
             if not C_i <= executed:
-                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain, tuples=tuples, executed=executed)
+                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain, tuples=tuples)
                 executed |= C_i
                 total_query_time += query_time
 
