@@ -15,7 +15,7 @@ def main():
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
-    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=None)
+    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=1000000)
 
     aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
