@@ -16,3 +16,7 @@ https://s3.amazonaws.com/umdb-users/cjbaik/IMDB.sql
 https://s3.amazonaws.com/umdb-users/cjbaik/mas.sql
 
 - Modified queries 65, 68, 72 because there were no papers with more than 200 citations.
+
+## Yelp
+
+https://s3.amazonaws.com/umdb-users/cjbaik/YELP.sql
