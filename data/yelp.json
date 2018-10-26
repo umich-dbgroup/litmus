@@ -248,7 +248,7 @@
  "022": {
   "cqs": {
    "001": "SELECT DISTINCT business_0.name, business_0.city FROM business AS business_0 JOIN category AS category_0 ON business_0.business_id = category_0.business_id WHERE business_0.city = 'Los Angeles' AND category_0.category_name = 'Festivals'",
-   "002": "SELECT DISTINCT tip_0.text, business_0.city FROM business AS business_0 JOIN tip AS tip_0 ON business_0.business_id = tip_0.business_id WHERE business_0.city = 'Los Angeles' AND category_0.category_name = 'Festivals'"
+   "002": "SELECT DISTINCT tip_0.text, business_0.city FROM business AS business_0 JOIN tip AS tip_0 ON business_0.business_id = tip_0.business_id WHERE business_0.city = 'Los Angeles'"
   },
   "nlq": "What are all the festivals in \"Los Angeles\"?",
   "ans": ["001"]
