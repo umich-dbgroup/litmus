@@ -131,4 +131,7 @@ class Query(object):
             cursor.close()
             if str(e).startswith('3024'):
                 return False
+            else:
+                print(query_str)
+                return False
         return result
