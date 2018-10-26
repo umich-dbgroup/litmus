@@ -11,7 +11,7 @@ import traceback
 from beautifultable import BeautifulTable
 
 from modules.aig import AIG
-from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyGuess, Random
+from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyFirst, GuessAndVerify
 from modules.database import Database
 from modules.excludes import find_excludes
 from modules.mailer import Mailer
@@ -56,14 +56,14 @@ def execute_mode(mode, db, parser, qid, task, info, aig, constrain):
 
     algorithm = None
 
-    if mode == 'random':
-        algorithm = Random(db)
+    if mode == 'gav':
+        algorithm = GuessAndVerify(db)
     elif mode == 'greedyall':
         algorithm = GreedyAll(db)
     elif mode == 'greedybb':
         algorithm = GreedyBB(db, info=info, aig=aig, constrain=constrain)
-    elif mode == 'greedyguess':
-        algorithm = GreedyGuess(db, info=info, aig=aig, constrain=constrain)
+    elif mode == 'greedyfirst':
+        algorithm = GreedyFirst(db, info=info, aig=aig, constrain=constrain)
 
     Q = parser.parse_many(qid, task['cqs'].copy())
 
@@ -141,7 +141,7 @@ def save_results(results, out_dir, prefix):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['random', 'greedyall', 'greedybb', 'greedyguess'])
+    argparser.add_argument('mode', choices=['gav', 'greedyall', 'greedybb', 'greedyfirst'])
     argparser.add_argument('--constrain', action='store_true')
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--info', choices=['type', 'range'], default='range')
@@ -156,12 +156,12 @@ def main():
 
     # only load aig if info includes range
     aig = None
-    if (args.mode == 'greedybb' or args.mode == 'greedyguess') and args.info == 'range':
+    if (args.mode == 'greedybb' or args.mode == 'greedyfirst') and args.info == 'range':
         aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
 
     tasks = load_tasks(config.get('main', 'data_dir'), args.db)
 
-    if args.mode == 'greedybb' or args.mode == 'greedyguess':
+    if args.mode == 'greedybb' or args.mode == 'greedyfirst':
         file_prefix = '{}_{}_{}'.format(args.db, args.mode, args.info)
     else:
         file_prefix = '{}_{}'.format(args.db, args.mode)

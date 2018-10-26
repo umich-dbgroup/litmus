@@ -337,7 +337,7 @@ class GreedyBB(GreedyAll):
         }
         return t_hat, t_hat_cqids, result_meta
 
-class GreedyGuess(GreedyBB):
+class GreedyFirst(GreedyBB):
     def tuples_not_in_future_cliques(self, C, tuples, i):
         results = {}
         for t, cqids in tuples.items():
@@ -397,7 +397,7 @@ class GreedyGuess(GreedyBB):
                 return t_hat, t_hat_cqids, result_meta
 
 
-class Random(Base):
+class GuessAndVerify(Base):
     def execute(self, Q):
         exec_cqs = []
         valid_cqs = []
@@ -405,15 +405,12 @@ class Random(Base):
         sql_errors = []
         cached = []
 
-        print("Executing random CQs until 1 random tuple found...")
-        r_keys = list(Q.keys())
-        random.shuffle(r_keys)
+        print("Executing CQs in weighted order and select 1 random tuple...")
+        sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: x[1].w))
 
         tuples = {}
         start = time.time()
-        while r_keys:
-            cqid = r_keys.pop()
-            cq = Q[cqid]
+        for cqid, cq in sorted_cqs.items():
             try:
                 exec_cqs.append(cqid)
                 print(cq.query_str)
@@ -449,7 +446,7 @@ class Random(Base):
             objectives, calc_objective_time = self.calc_objectives(Q, tuples)
 
             # need to check not-yet-executed queries and any timed-out queries
-            check_queries = list(r_keys)
+            check_queries = list(set(Q.keys()) - set(exec_cqs))
             check_queries.extend(timed_out)
 
             objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
