@@ -30,7 +30,7 @@ def tqc_for_task(db, parser, qid, task):
 
     ans_id = task['ans'][0]
     tq_str = task['cqs'][ans_id]
-    tq, cached = parser.parse_one(ans_id, tq_str)
+    tq, cached = parser.parse_one(qid, ans_id, tq_str)
 
     # save target query to temp table
     print('Creating temporary table...')
@@ -64,7 +64,7 @@ def tqc_for_task(db, parser, qid, task):
             bar.update(1)
             continue
 
-        cq, cached = parser.parse_one(cqid, cq_str)
+        cq, cached = parser.parse_one(qid, cqid, cq_str)
 
         check = re.sub('(SELECT) (DISTINCT )?(.*) (FROM)', '\g<1> COUNT(DISTINCT \g<3>) \g<4> tq,', cq_str, count=1)
         if 'where' not in check.lower():
@@ -134,7 +134,7 @@ def main():
 
     timeout = 100000
     db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=timeout, buffer_pool_size=config.get('database', 'buffer_pool_size'))
-    parser = SQLParser(config.get('parser', 'cache_path'))
+    parser = SQLParser(args.db, config.get('parser', 'cache_dir'))
 
     tasks = load_tasks(config.get('main', 'data_dir'), args.db)
 
