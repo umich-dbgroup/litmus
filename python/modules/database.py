@@ -161,7 +161,7 @@ def convert_mysql_type(mysql_type):
     elif mysql_type.startswith('char'):
         m = re.match('char\(([0-9]+)\)', mysql_type)
         return 'text', int(m.group(1))
-    elif mysql_type == 'text' or mysql_type.startswith('enum'):
+    elif mysql_type == 'text' or mysql_type == 'longtext' or mysql_type.startswith('enum'):
         return 'text', None
     else:
         return mysql_type, None
