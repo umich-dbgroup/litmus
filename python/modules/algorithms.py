@@ -398,6 +398,11 @@ class GreedyFirst(GreedyBB):
 
 
 class GuessAndVerify(Base):
+    # credit: https://gist.github.com/9thbit/1559670/4ee195bdbec43aff58a65b148b11c2ac7d246c11
+    def compare_with_ties(a, b):
+        diff = cmp(a, b)
+        return diff if diff else (random.randint(0, 1) * 2 - 1)
+
     def execute(self, Q):
         exec_cqs = []
         valid_cqs = []
