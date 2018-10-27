@@ -399,7 +399,7 @@ class GreedyFirst(GreedyBB):
 
 class GuessAndVerify(Base):
     # credit: https://gist.github.com/9thbit/1559670/4ee195bdbec43aff58a65b148b11c2ac7d246c11
-    def compare_with_ties(a, b):
+    def cmp_w_randomize_ties(self, a, b):
         diff = cmp(a, b)
         return diff if diff else (random.randint(0, 1) * 2 - 1)
 
@@ -411,7 +411,7 @@ class GuessAndVerify(Base):
         cached = []
 
         print("Executing CQs in weighted order and select 1 random tuple...")
-        sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: x[1].w))
+        sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: x[1].w, cmp=self.cmp_w_randomize_ties))
 
         tuples = {}
         start = time.time()
