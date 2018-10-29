@@ -1,6 +1,7 @@
 import re
 
 from database import AttributeIntersect
+from numbers import Number
 
 class Query(object):
     def __init__(self, cqid, query_str, projs, preds, w=1):
@@ -109,6 +110,16 @@ class Query(object):
                 preds.append(u"{} = {}".format(proj, t[i]))
 
             attr = db.get_attr(proj)
+
+            tuple_type = None
+            if isinstance(t[i], basestring):
+                tuple_type = 'text'
+            elif isinstance(t[i], Number):
+                tuple_type = 'num'
+
+            if tuple_type is not None and attr.type != tuple_type:
+                return False
+
             if not attr.pk:
                 alias, attr_name = proj.split('.')
                 proj_alias_to_attr[alias] = attr_name
