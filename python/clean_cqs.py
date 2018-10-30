@@ -35,7 +35,7 @@ def main():
 
     for qid, task in data.items():
         print('\nExamining Task {}...'.format(qid))
-        if qid in excludes:
+        if int(qid) in excludes:
             print('Skipping excluded query.')
             continue
 
