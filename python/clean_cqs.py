@@ -80,8 +80,11 @@ def main():
 
         # remaining CQs should be saved back into data
         new_cqs = {}
-        for i in cq_infos:
-            new_cqs[i[0]] = task['cqs'][i[0]]
+        for i, info in enumerate(cq_infos):
+            new_cqid = format(i, '03')
+            new_cqs[new_cqid] = task['cqs'][info[0]]
+            if info[0] == tqid:
+                task['ans'] = [new_cqid]
         task['cqs'] = OrderedDict(sorted(new_cqs.items(), key=lambda x: x[0]))
 
     data = OrderedDict(sorted(data.items(), key=lambda x: x[0]))
