@@ -89,7 +89,7 @@ def main():
 
     data = OrderedDict(sorted(data.items(), key=lambda x: x[0]))
 
-    json.dump(data, open('../data/{}.cleaned.json'.format(args.db), 'w'))
+    json.dump(data, open('../data/{}.cleaned.json'.format(args.db), 'w'), indent=1)
 
     if args.email is not None:
         mailer = Mailer()
