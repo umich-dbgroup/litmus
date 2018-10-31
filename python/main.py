@@ -6,6 +6,7 @@ from collections import OrderedDict
 import json
 import os
 import pickle
+import random
 import traceback
 
 from beautifultable import BeautifulTable
@@ -51,7 +52,39 @@ def user_feedback(cand_cqs, tuple_cqids, ans):
 
     return new_cqs
 
-def execute_mode(mode, db, parser, qid, task, info, aig, constrain):
+def set_weights(Q, tqid, tq_rank):
+    if tq_rank == 'random':
+        return
+
+    tq_idx = None
+    if tq_rank == '1':
+        tq_idx = 0
+    elif tq_rank == 'n/4':
+        tq_idx = int(len(Q) / 4) - 1
+    elif tq_rank == 'n/2':
+        tq_idx = int(len(Q) / 2) - 1
+    elif tq_rank == '3n/4':
+        tq_idx = int(3 * len(Q) / 4) - 1
+    elif tq_rank == 'n':
+        tq_idx = len(Q) - 1
+    else:
+        raise Exception('Unrecognized tq_rank: {}'.format(tq_rank))
+
+    cqids = Q.keys()
+    cqids.remove(tqid)
+
+    # shuffle ranks of non-target query CQs
+    random.shuffle(cqids)
+
+    # insert the target query at the location
+    cqids.insert(tq_idx, tqid)
+
+    # assign weights for each CQ according to weighting scheme
+    for i, cqid in enumerate(cqids):
+        Q[cqid].set_w(len(Q) - i)
+
+
+def execute_mode(mode, db, parser, qid, task, info, aig, constrain, tq_rank):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
@@ -67,7 +100,7 @@ def execute_mode(mode, db, parser, qid, task, info, aig, constrain):
 
     Q = parser.parse_many(qid, task['cqs'].copy())
 
-    # TODO: if weights desired, iterate through Q and set_w for each
+    set_weights(Q, task['ans'][0], tq_rank)
 
     result_metas = []
     iters = 0
@@ -143,6 +176,7 @@ def main():
     argparser.add_argument('db')
     argparser.add_argument('mode', choices=['gav', 'greedyall', 'greedybb', 'greedyfirst'])
     argparser.add_argument('--constrain', action='store_true')
+    argparser.add_argument('--tq_rank', choices=['random', '1', 'n/4', 'n/2', '3n/4', 'n'], default='random')
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--info', choices=['type', 'range'], default='range')
     argparser.add_argument('--email')
@@ -181,7 +215,7 @@ def main():
             if args.qid in results:
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
-                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.info, aig, args.constrain)
+                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.info, aig, args.constrain, args.tq_rank)
                 save_cache(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
@@ -194,7 +228,7 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.constrain)
+                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.constrain, args.tq_rank)
                     save_cache(results, cache_path)
                 # print_result(qid, results[qid])
 
