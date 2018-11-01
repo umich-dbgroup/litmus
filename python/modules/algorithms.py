@@ -73,7 +73,7 @@ class Base(object):
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
 
-        self.print_stats(cqs, timed_out, sql_errors, valid_cqs, cached)
+        self.print_stats(cqs.keys(), timed_out, sql_errors, valid_cqs, cached)
 
         return tuples, valid_cqs, timed_out, sql_errors, query_time
 
