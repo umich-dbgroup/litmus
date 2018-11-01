@@ -36,8 +36,8 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         if r['iters'] is None:
             print('FAILED QUERY: {}'.format(qid))
             continue
-        if r['iters'] == 0:
-            continue
+        # if r['iters'] == 0:
+        #     continue
 
         analyzed_count += 1
         qids.append(qid)
