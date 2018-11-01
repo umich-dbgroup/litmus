@@ -33,8 +33,9 @@ class Base(object):
         }
         return None, None, result_meta
 
-    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False, tuples={}):
-        print(tuples)
+    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False, tuples=None):
+        if tuples is None:
+            tuples = {}
         valid_cqs = []
         timed_out = []
         sql_errors = []
@@ -76,7 +77,6 @@ class Base(object):
 
         self.print_stats(cqs.keys(), timed_out, sql_errors, valid_cqs, cached)
 
-        print(tuples)
         return tuples, valid_cqs, timed_out, sql_errors, query_time
 
     def objective(self, Q, S):
@@ -163,7 +163,6 @@ class GreedyAll(Base):
         if tuples:
             objectives, objective_time = self.calc_objectives(Q, tuples)
             comp_time += objective_time
-            self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
             objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, timed_out)
             comp_time += min_objective_time
             self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
