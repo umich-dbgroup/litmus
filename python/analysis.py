@@ -36,8 +36,8 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         if r['iters'] is None:
             print('FAILED QUERY: {}'.format(qid))
             continue
-        # if r['iters'] == 0:
-        #     continue
+        if r['iters'] == 0:
+            continue
 
         analyzed_count += 1
         qids.append(qid)
@@ -133,7 +133,7 @@ def main():
             summaries.append(accumulate_results(results, args.min, args.max, tqcs, args.tqc_min, args.tqc_max))
     stats = avg_summaries(summaries)
 
-    iters_0 = sum(i == 0 for i in stats['iters'])
+    # iters_0 = sum(i == 0 for i in stats['iters'])
     iters_1 = sum(i <= 1 for i in stats['iters'])
     iters_2 = sum(i <= 2 for i in stats['iters'])
     iters_3 = sum(i <= 3 for i in stats['iters'])
@@ -174,7 +174,7 @@ def main():
     table.column_alignments['ITER INFO'] = BeautifulTable.ALIGN_LEFT
     table.column_alignments['VALUE'] = BeautifulTable.ALIGN_RIGHT
     table.row_separator_char = ''
-    table.append_row(['# Tasks <= 0 Iter (%)', '{} ({:.2f}%)'.format(iters_0, iters_0 / stats['analyzed'] * 100)])
+    # table.append_row(['# Tasks <= 0 Iter (%)', '{} ({:.2f}%)'.format(iters_0, iters_0 / stats['analyzed'] * 100)])
     table.append_row(['# Tasks <= 1 Iter (%)', '{} ({:.2f}%)'.format(iters_1, iters_1 / stats['analyzed'] * 100)])
     table.append_row(['# Tasks <= 2 Iter (%)', '{} ({:.2f}%)'.format(iters_2, iters_2 / stats['analyzed'] * 100)])
     table.append_row(['# Tasks <= 3 Iter (%)', '{} ({:.2f}%)'.format(iters_3, iters_3 / stats['analyzed'] * 100)])
