@@ -73,7 +73,7 @@ class Base(object):
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
 
-        self.print_stats(len(cqs), len(timed_out), len(sql_errors), len(valid_cqs), len(cached))
+        self.print_stats(exec_cqs, timed_out, sql_errors, valid_cqs, cached)
 
         return tuples, valid_cqs, timed_out, sql_errors, query_time
 
@@ -125,6 +125,7 @@ class Base(object):
                 for cqid in S:
                     Q[cqid].tuples.discard(t)
             else:
+                # only execute up to the first
                 break
 
         # resort
@@ -134,20 +135,20 @@ class Base(object):
         print('Done finding min objective tuples. [{}s]'.format(min_obj_time))
         return objectives, min_obj_time
 
-    def print_tuple(self, Q, t, S):
-        print("{}, Objective: {}, # CQs: {}".format(t, self.objective(Q, S), len(S)))
+    def print_tuple(self, t, objective, S):
+        print("{}, Objective: {}, # CQs: {}, CQs: {}".format(t, objective, len(S), S))
 
     def print_best_tuples(self, Q, objectives, T, k):
         print("Top {} tuples:".format(k))
         for t, objective in objectives.items()[0:k]:
-            self.print_tuple(Q, t, T[t])
+            self.print_tuple(t, objective, T[t])
 
-    def print_stats(self, cq_count, timeout_count, sql_errors, valid_count, cached_count):
-        print('Executed CQs: {}'.format(cq_count))
-        print('From Cache: {}'.format(cached_count))
-        print('Timed Out CQs: {}'.format(timeout_count))
-        print('SQL Error CQs: {}'.format(sql_errors))
-        print('Valid CQs: {}'.format(valid_count))
+    def print_stats(self, exec_cqs, timed_out, sql_errors, valid_cqs, cached):
+        print('Executed CQs ({}): {}'.format(len(exec_cqs), exec_cqs))
+        print('From Cache ({}): {}'.format(len(cached), cached))
+        print('Timed Out CQs ({}): {}'.format(len(timed_out), timed_out))
+        print('SQL Error CQs ({}): {}'.format(len(sql_errors), sql_errors))
+        print('Valid CQs ({}): {}'.format(len(valid_cqs), valid_cqs))
 
 class GreedyAll(Base):
     def execute(self, Q):
@@ -322,7 +323,7 @@ class GreedyBB(GreedyAll):
         dist_time = 0
         if T_hat:
             for t, S in T_hat.items()[0:TOP_TUPLES]:
-                self.print_tuple(Q, t, S)
+                self.print_tuple(t, self.objective(Q,S), S)
 
             t_hat, t_hat_cqids = T_hat.items()[0]
             min_objective = self.objective(Q, t_hat_cqids)
@@ -386,7 +387,7 @@ class GreedyFirst(GreedyBB):
                 t_hat, min_objective = objectives.items()[0]
                 t_hat_cqids = tuples[t_hat]
 
-                self.print_tuple(Q, t_hat, t_hat_cqids)
+                self.print_tuple(t_hat, min_objective, t_hat_cqids)
 
                 result_meta = {
                     'objective': min_objective,
@@ -440,7 +441,7 @@ class GuessAndVerify(Base):
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
 
-        self.print_stats(len(exec_cqs), len(timed_out), len(sql_errors), len(valid_cqs), len(cached))
+        self.print_stats(exec_cqs, timed_out, sql_errors, valid_cqs, cached)
 
         t_hat = None
         t_hat_cqids = None
