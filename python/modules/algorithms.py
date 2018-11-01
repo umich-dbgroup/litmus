@@ -34,6 +34,7 @@ class Base(object):
         return None, None, result_meta
 
     def run_cqs(self, cqs, msg_append='', qig=None, constrain=False, tuples={}):
+        print(tuples)
         valid_cqs = []
         timed_out = []
         sql_errors = []
@@ -75,6 +76,7 @@ class Base(object):
 
         self.print_stats(cqs.keys(), timed_out, sql_errors, valid_cqs, cached)
 
+        print(tuples)
         return tuples, valid_cqs, timed_out, sql_errors, query_time
 
     def objective(self, Q, S):
