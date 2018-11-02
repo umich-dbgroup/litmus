@@ -16,6 +16,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
     analyzed_count = 0
     qids = []
     cq_counts = []
+    exec_cq_counts = []
     each_iters = []
     query_times = []
     comp_times = []
@@ -48,7 +49,9 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         comp_time = 0
         total_time = 0
         max_iter_time = 0
+        exec_cq_count = 0
         for meta in r['meta']:
+            exec_cq_count += meta['exec_cq']
             query_time += meta['query_time']
             comp_time += meta['comp_time']
             iter_time = meta['query_time'] + meta['comp_time']
@@ -57,6 +60,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
             if iter_time > max_iter_time:
                 max_iter_time = iter_time
 
+        exec_cq_counts.append(exec_cq_count)
         query_times.append(query_time)
         comp_times.append(comp_time)
         total_times.append(total_time)
@@ -68,6 +72,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         'analyzed': analyzed_count,
         'qids': qids,
         'cq_counts': cq_counts,
+        'exec_cq_counts': exec_cq_counts,
         'iters': each_iters,
         'query_times': query_times,
         'comp_times': comp_times,
@@ -88,6 +93,7 @@ def avg_summaries(summaries):
             result['analyzed'] += summary['analyzed']
             assert(result['qids'] == summary['qids'])
             result['cq_counts'] = list(map(add,result['cq_counts'],summary['cq_counts']))
+            result['exec_cq_counts'] = list(map(add,result['exec_cq_counts'],summary['exec_cq_counts']))
             result['iters'] = list(map(add,result['iters'],summary['iters']))
             result['query_times'] = list(map(add,result['query_times'],summary['query_times']))
             result['comp_times'] = list(map(add,result['comp_times'],summary['comp_times']))
@@ -98,6 +104,7 @@ def avg_summaries(summaries):
     result['total'] /= len(summaries)
     result['analyzed'] /= len(summaries)
     result['cq_counts'] = [i / len(summaries) for i in result['cq_counts']]
+    result['exec_cq_counts'] = [i / len(summaries) for i in result['exec_cq_counts']]
     result['iters'] = [i / len(summaries) for i in result['iters']]
     result['query_times'] = [i / len(summaries) for i in result['query_times']]
     result['comp_times'] = [i / len(summaries) for i in result['comp_times']]
@@ -197,6 +204,7 @@ def main():
     table.column_alignments['TIME INFO'] = BeautifulTable.ALIGN_LEFT
     table.column_alignments['VALUE'] = BeautifulTable.ALIGN_RIGHT
     table.row_separator_char = ''
+    table.append_row(['Mean Executed CQ #', '{:.3f}s'.format(np.mean(stats['exec_cq_counts']))])
     table.append_row(['Mean Query Time', '{:.3f}s'.format(np.mean(stats['query_times']))])
     table.append_row(['Mean Computation Time', '{:.3f}s'.format(np.mean(stats['comp_times']))])
     table.append_row(['Mean Total Time', '{:.3f}s'.format(np.mean(stats['total_times']))])

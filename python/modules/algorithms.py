@@ -28,6 +28,7 @@ class Base(object):
         result_meta = {
             'objective': 0,
             'total_cq': len(cqs),
+            'exec_cq': 0,
             'query_time': 0,
             'comp_time': 0
         }
@@ -180,6 +181,7 @@ class GreedyAll(Base):
         result_meta = {
             'objective': min_objective,
             'total_cq': len(Q),
+            'exec_cq': len(Q),
             'query_time': query_time,
             'comp_time': comp_time
         }
@@ -215,6 +217,7 @@ class GreedyBB(GreedyAll):
                 return 0
 
             vals = []
+            vals.append(S_w - diff_w)   # base case
             for C in combinations(S, len(S) - 1):
                 C_key = frozenset(C)
                 if C_key in M:
@@ -314,6 +317,7 @@ class GreedyBB(GreedyAll):
             if U:
                 start = time.time()
                 for item in self.branch(Q, C, U):
+                    print('BRANCHING')
                     if frozenset(item[1]) not in P_dups:
                         P.put(item)
                         P_dups.add(frozenset(item[1]))
@@ -335,6 +339,7 @@ class GreedyBB(GreedyAll):
         result_meta = {
             'objective': min_objective,
             'total_cq': len(Q),
+            'exec_cq': len(executed),
             'query_time': total_query_time,
             'comp_time': comp_time
         }
@@ -394,6 +399,7 @@ class GreedyFirst(GreedyBB):
                 result_meta = {
                     'objective': min_objective,
                     'total_cq': len(Q),
+                    'exec_cq': len(executed),
                     'query_time': total_query_time,
                     'comp_time': calc_objective_time + min_objective_time + future_check_time
                 }
@@ -417,6 +423,7 @@ class GuessAndVerify(Base):
         sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: -x[1].w, cmp=self.cmp_w_randomize_ties))
 
         tuples = {}
+
         start = time.time()
         for cqid, cq in sorted_cqs.items():
             try:
@@ -465,6 +472,7 @@ class GuessAndVerify(Base):
         result_meta = {
             'objective': min_objective,
             'total_cq': len(Q),
+            'exec_cq': len(exec_cqs),
             'query_time': query_time,
             'comp_time': calc_objective_time + min_objective_time
         }
