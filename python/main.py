@@ -108,8 +108,6 @@ def execute_mode(mode, db_name, qid, task, info, tq_rank, log_dir):
         task_cleaned['ans'].append(int(cqid))
     task = task_cleaned
 
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
     log_path = os.path.join(log_dir, str(qid) + '.log')
 
     with Logger(log_path):
@@ -223,6 +221,10 @@ def main():
 
     cache_path = os.path.join(config.get('main', 'cache_dir'), file_prefix + '.pkl')
     log_dir = os.path.join(config.get('main', 'log_dir'), file_prefix)
+
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
     # results = load_cache(cache_path)
     results = {}
 
