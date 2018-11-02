@@ -414,7 +414,7 @@ class GuessAndVerify(Base):
         cached = []
 
         print("Executing CQs in weighted order and select 1 random tuple...")
-        sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: x[1].w, cmp=self.cmp_w_randomize_ties))
+        sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: -x[1].w, cmp=self.cmp_w_randomize_ties))
 
         tuples = {}
         start = time.time()
