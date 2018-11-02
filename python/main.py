@@ -200,7 +200,7 @@ def main():
     else:
         file_prefix = '{}_{}'.format(args.db, args.mode)
 
-    file_prefix += '_' + args.tq_rank
+    file_prefix += '_tq' + args.tq_rank
 
     cache_path = os.path.join(config.get('main', 'cache_dir'), file_prefix + '.pkl')
     results = load_cache(cache_path)
