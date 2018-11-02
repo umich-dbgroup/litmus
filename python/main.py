@@ -175,8 +175,8 @@ def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
     argparser.add_argument('mode', choices=['gav', 'greedyall', 'greedybb', 'greedyfirst'])
-    argparser.add_argument('--constrain', action='store_true')
-    argparser.add_argument('--tq_rank', choices=['random', '1', 'n/4', 'n/2', '3n/4', 'n'], default='random')
+    # argparser.add_argument('--constrain', action='store_true')
+    argparser.add_argument('--tq_rank', choices=['random', '1', 'n_over_4', 'n_over_2', '3n_over_4', 'n'], default='random')
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--info', choices=['type', 'range'], default='range')
     argparser.add_argument('--email')
@@ -200,8 +200,7 @@ def main():
     else:
         file_prefix = '{}_{}'.format(args.db, args.mode)
 
-    if args.constrain:
-        file_prefix += '_constrain'
+    file_prefix += '_' + args.tq_rank
 
     cache_path = os.path.join(config.get('main', 'cache_dir'), file_prefix + '.pkl')
     results = load_cache(cache_path)
