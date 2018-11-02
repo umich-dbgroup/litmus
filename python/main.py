@@ -257,6 +257,7 @@ def main():
                     # save_cache(results, cache_path)
                 # print_result(qid, results[qid])
             for qid, res in responses.items():
+                print('Finished query {}.'.format(qid))
                 results[qid] = res.get()
 
             # save all results when finished
