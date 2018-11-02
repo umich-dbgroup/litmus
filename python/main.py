@@ -84,7 +84,7 @@ def set_weights(Q, tqid, tq_rank):
         Q[cqid].set_w(len(Q) - i)
 
 
-def execute_mode(mode, db, parser, qid, task, info, aig, constrain, tq_rank):
+def execute_mode(mode, db, parser, qid, task, info, aig, tq_rank):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
@@ -94,9 +94,9 @@ def execute_mode(mode, db, parser, qid, task, info, aig, constrain, tq_rank):
     elif mode == 'greedyall':
         algorithm = GreedyAll(db)
     elif mode == 'greedybb':
-        algorithm = GreedyBB(db, info=info, aig=aig, constrain=constrain)
+        algorithm = GreedyBB(db, info=info, aig=aig)
     elif mode == 'greedyfirst':
-        algorithm = GreedyFirst(db, info=info, aig=aig, constrain=constrain)
+        algorithm = GreedyFirst(db, info=info, aig=aig)
 
     Q = parser.parse_many(qid, task['cqs'].copy())
 
@@ -214,7 +214,7 @@ def main():
             if args.qid in results:
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
-                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.info, aig, args.constrain, args.tq_rank)
+                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.info, aig, args.tq_rank)
                 save_cache(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
@@ -227,7 +227,7 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.constrain, args.tq_rank)
+                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.tq_rank)
                     save_cache(results, cache_path)
                 # print_result(qid, results[qid])
 
