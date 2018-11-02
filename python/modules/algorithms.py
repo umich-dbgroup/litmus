@@ -8,7 +8,7 @@ import traceback
 from collections import OrderedDict
 from itertools import combinations
 from Queue import PriorityQueue
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from query import Query
 from partitions import PartSet
@@ -42,7 +42,7 @@ class Base(object):
         sql_errors = []
         cached = []
 
-        bar = tqdm(total=len(cqs), desc='Running CQs{}'.format(msg_append))
+        # bar = tqdm(total=len(cqs), desc='Running CQs{}'.format(msg_append))
 
         start = time.time()
         for cqid, cq in cqs.items():
@@ -71,8 +71,8 @@ class Base(object):
             except Exception as e:
                 print(traceback.format_exc())
                 sql_errors.append(cqid)
-            bar.update(1)
-        bar.close()
+            # bar.update(1)
+        # bar.close()
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
 
@@ -437,9 +437,25 @@ class GuessAndVerify(Base):
 
                 if len(cq_tuples) > 0:
                     valid_cqs.append(cqid)
-                    t = random.choice(list(cq_tuples))
-                    tuples[t] = set([cqid])
-                    break
+
+                    tuple_list = list(cq_tuples)
+                    random.shuffle(tuple_list)
+
+                    for t in tuple_list:
+                        tuples = { t: set([ int(cqid) ]) }
+
+                        # need to check not-yet-executed queries and any timed-out queries
+                        check_queries = list(set(Q.keys()) - set(exec_cqs))
+                        check_queries.extend(timed_out)
+
+                        objectives, calc_objective_time = self.calc_objectives(Q, tuples)
+                        objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
+
+                        if tuples[t] != Q.keys():
+                            break
+
+                    if tuples[t] != Q.keys():
+                        break
             except Exception as e:
                 if str(e).startswith('Timeout'):
                     timed_out.append(cqid)
@@ -458,13 +474,6 @@ class GuessAndVerify(Base):
         dist_time = 0
         min_objective_time = 0
         if tuples:
-            objectives, calc_objective_time = self.calc_objectives(Q, tuples)
-
-            # need to check not-yet-executed queries and any timed-out queries
-            check_queries = list(set(Q.keys()) - set(exec_cqs))
-            check_queries.extend(timed_out)
-
-            objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
             self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
             t_hat, min_objective = objectives.items()[0]
             t_hat_cqids = tuples[t_hat]

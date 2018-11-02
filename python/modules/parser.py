@@ -7,7 +7,7 @@ import time
 import traceback
 
 from moz_sql_parser import parse
-from tqdm import tqdm
+# from tqdm import tqdm
 
 from query import Query
 
@@ -67,7 +67,7 @@ class SQLParser(object):
 
         self.load_cache(qid)
 
-        bar = tqdm(total=len(query_strs), desc='Parsing CQs')
+        # bar = tqdm(total=len(query_strs), desc='Parsing CQs')
 
         queries = {}
         from_cache = 0
@@ -82,8 +82,8 @@ class SQLParser(object):
                 print(query_str)
                 print(traceback.format_exc())
                 errors.append(cqid)
-            bar.update(1)
-        bar.close()
+            # bar.update(1)
+        # bar.close()
 
         print('Flushing cache...')
         self.flush_cache(qid)

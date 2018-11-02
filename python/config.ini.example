@@ -1,5 +1,6 @@
 [main]
 cache_dir = cache/
+log_dir = log/
 results_dir = ../results/
 data_dir = ../data/
 

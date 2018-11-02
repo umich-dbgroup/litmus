@@ -10,11 +10,13 @@ import random
 import traceback
 
 from beautifultable import BeautifulTable
+from multiprocessing import Pool
 
 from modules.aig import AIG
 from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyFirst, GuessAndVerify
 from modules.database import Database
 from modules.excludes import find_excludes
+from modules.logger import Logger
 from modules.mailer import Mailer
 from modules.parser import SQLParser
 
@@ -83,59 +85,85 @@ def set_weights(Q, tqid, tq_rank):
     for i, cqid in enumerate(cqids):
         Q[cqid].set_w(len(Q) - i)
 
+def execute_mode(mode, db_name, qid, task, info, tq_rank, log_dir):
+    config = ConfigParser.RawConfigParser(allow_no_value=True)
+    config.read('config.ini')
 
-def execute_mode(mode, db, parser, qid, task, info, aig, tq_rank):
-    print("QUERY {}: {}".format(qid, mode))
+    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), db_name, config.get('database', 'cache_dir'), timeout=config.get('database', 'timeout'), buffer_pool_size=config.get('database', 'buffer_pool_size'))
+    parser = SQLParser(db_name, config.get('parser', 'cache_dir'))
 
-    algorithm = None
+    # only load aig if info includes range
+    aig = None
+    if (mode == 'greedybb' or mode == 'greedyfirst') and info == 'range':
+        aig = AIG(db, os.path.join(config.get('aig', 'dir'), db_name + '.aig'))
 
-    if mode == 'gav':
-        algorithm = GuessAndVerify(db)
-    elif mode == 'greedyall':
-        algorithm = GreedyAll(db)
-    elif mode == 'greedybb':
-        algorithm = GreedyBB(db, info=info, aig=aig)
-    elif mode == 'greedyfirst':
-        algorithm = GreedyFirst(db, info=info, aig=aig)
-
-    Q = parser.parse_many(qid, task['cqs'].copy())
-
-    set_weights(Q, task['ans'][0], tq_rank)
-
-    result_metas = []
-    iters = 0
-    while len(Q) > len(task['ans']):
-        print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(Q), len(task['ans'])))
-        tuple, tuple_cqids, meta = algorithm.execute(Q)
-        iters += 1
-
-        print(meta)
-        result_metas.append(meta)
-
-        if not tuple:
-            iters = None
-            break
-
-        Q = user_feedback(Q, tuple_cqids, task['ans'])
-
-    if iters is None or len(Q) == 0:
-        # if couldn't find tuple or no cand cqs left
-        iters = None
-        print('FAILED to find intended query(s).')
-    elif len(Q) == len(task['ans']) and all(k in task['ans'] for k in Q.keys()):
-        print('SUCCESS in finding intended query(s).')
-        print('TOTAL ITERATIONS: {}'.format(iters))
-    else:
-        raise Exception('Failed in finding intended query(s).')
-
-    print()
-
-    result = {
-        'total_cqs': len(task['cqs']),
-        'iters': iters,
-        'meta': result_metas
+    data = json.loads(task)
+    task_cleaned = {
+        'cqs': {},
+        'ans': []
     }
-    return result
+    for cqid, cq in data['cqs'].items():
+        task_cleaned['cqs'][int(cqid)] = cq
+    for cqid in data['ans']:
+        task_cleaned['ans'].append(int(cqid))
+    task = task_cleaned
+
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_path = os.path.join(log_dir, str(qid) + '.log')
+
+    with Logger(log_path):
+        print("QUERY {}: {}".format(qid, mode))
+
+        algorithm = None
+
+        if mode == 'gav':
+            algorithm = GuessAndVerify(db)
+        elif mode == 'greedyall':
+            algorithm = GreedyAll(db)
+        elif mode == 'greedybb':
+            algorithm = GreedyBB(db, info=info, aig=aig)
+        elif mode == 'greedyfirst':
+            algorithm = GreedyFirst(db, info=info, aig=aig)
+
+        Q = parser.parse_many(qid, task['cqs'].copy())
+
+        set_weights(Q, task['ans'][0], tq_rank)
+
+        result_metas = []
+        iters = 0
+        while len(Q) > len(task['ans']):
+            print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(Q), len(task['ans'])))
+            tuple, tuple_cqids, meta = algorithm.execute(Q)
+            iters += 1
+
+            print(meta)
+            result_metas.append(meta)
+
+            if not tuple:
+                iters = None
+                break
+
+            Q = user_feedback(Q, tuple_cqids, task['ans'])
+
+        if iters is None or len(Q) == 0:
+            # if couldn't find tuple or no cand cqs left
+            iters = None
+            print('FAILED to find intended query(s).')
+        elif len(Q) == len(task['ans']) and all(k in task['ans'] for k in Q.keys()):
+            print('SUCCESS in finding intended query(s).')
+            print('TOTAL ITERATIONS: {}'.format(iters))
+        else:
+            raise Exception('Failed in finding intended query(s).')
+
+        print()
+
+        result = {
+            'total_cqs': len(task['cqs']),
+            'iters': iters,
+            'meta': result_metas
+        }
+        return result
 
 def load_tasks(data_dir, db_name):
     with open(os.path.join(data_dir, db_name + '.json')) as f:
@@ -154,14 +182,14 @@ def load_tasks(data_dir, db_name):
 
     return tasks
 
-def load_cache(path):
-    if os.path.exists(path):
-        return pickle.load(open(path, 'rb'))
-    else:
-        return {}
+# def load_cache(path):
+#     if os.path.exists(path):
+#         return pickle.load(open(path, 'rb'))
+#     else:
+#         return {}
 
-def save_cache(results, path):
-    pickle.dump(results, open(path, 'wb'))
+# def save_cache(results, path):
+#     pickle.dump(results, open(path, 'wb'))
 
 def save_results(results, out_dir, prefix):
     idx = 0
@@ -184,15 +212,6 @@ def main():
 
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
-
-    db = Database(config.get('database', 'user'), config.get('database', 'pw'), config.get('database', 'host'), args.db, config.get('database', 'cache_dir'), timeout=config.get('database', 'timeout'), buffer_pool_size=config.get('database', 'buffer_pool_size'))
-    parser = SQLParser(args.db, config.get('parser', 'cache_dir'))
-
-    # only load aig if info includes range
-    aig = None
-    if (args.mode == 'greedybb' or args.mode == 'greedyfirst') and args.info == 'range':
-        aig = AIG(db, os.path.join(config.get('aig', 'dir'), args.db + '.aig'))
-
     tasks = load_tasks(config.get('main', 'data_dir'), args.db)
 
     if args.mode == 'greedybb' or args.mode == 'greedyfirst':
@@ -203,7 +222,9 @@ def main():
     file_prefix += '_tq' + args.tq_rank
 
     cache_path = os.path.join(config.get('main', 'cache_dir'), file_prefix + '.pkl')
-    results = load_cache(cache_path)
+    log_dir = os.path.join(config.get('main', 'log_dir'), file_prefix)
+    # results = load_cache(cache_path)
+    results = {}
 
     # load qids to exclude
     excludes = find_excludes(args.db)
@@ -214,12 +235,16 @@ def main():
             if args.qid in results:
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
-                results[args.qid] = execute_mode(args.mode, db, parser, args.qid, tasks[args.qid], args.info, aig, args.tq_rank)
-                save_cache(results, cache_path)
+                results[args.qid] = execute_mode(args.mode, args.db, args.qid, json.dumps(tasks[args.qid]), args.info, args.tq_rank, log_dir)
+                # save_cache(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
             # if executing all queries
+            pool = Pool()
+
             sorted_tasks = OrderedDict(sorted(tasks.items(), key=lambda t: t[0]))
+
+            responses = {}
             for qid, task in sorted_tasks.items():
                 if qid in excludes:
                     print('QUERY {}: Skipping non-SPJ query.'.format(qid))
@@ -227,9 +252,12 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.tq_rank)
-                    save_cache(results, cache_path)
+                    responses[qid] = pool.apply_async(execute_mode, (args.mode, args.db, qid, json.dumps(task), args.info, args.tq_rank, log_dir))
+                    # results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.tq_rank)
+                    # save_cache(results, cache_path)
                 # print_result(qid, results[qid])
+            for qid, res in responses.items():
+                results[qid] = res.get()
 
             # save all results when finished
             save_results(results, config.get('main', 'results_dir'), file_prefix)

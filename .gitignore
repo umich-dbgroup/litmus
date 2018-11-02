@@ -1,4 +1,5 @@
 python/cache
+python/log
 python/venv
 python/config.ini
 python/*.out
