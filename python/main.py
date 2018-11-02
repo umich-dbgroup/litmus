@@ -257,8 +257,8 @@ def main():
                     # save_cache(results, cache_path)
                 # print_result(qid, results[qid])
             for qid, res in responses.items():
-                print('Finished query {}.'.format(qid))
                 results[qid] = res.get()
+                print('Finished query {}.'.format(qid))
 
             # save all results when finished
             save_results(results, config.get('main', 'results_dir'), file_prefix)
