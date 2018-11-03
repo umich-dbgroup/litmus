@@ -451,10 +451,10 @@ class GuessAndVerify(Base):
                         objectives, calc_objective_time = self.calc_objectives(Q, tuples)
                         objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
 
-                        if tuples[t] != Q.keys():
+                        if tuples[t] != set(Q.keys()):
                             break
 
-                    if tuples[t] != Q.keys():
+                    if tuples[t] != set(Q.keys()):
                         break
             except Exception as e:
                 if str(e).startswith('Timeout'):
