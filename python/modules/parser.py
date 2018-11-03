@@ -24,15 +24,18 @@ class SQLParser(object):
         if os.path.exists(self.cache_path(qid)):
             with open(self.cache_path(qid), 'rb') as f:
                 self.cache = pickle.load(f)
+                return True
         else:
             self.cache = {}
+            return False
 
     def update_cache(self, query):
         copy = Query(query.cqid, query.query_str, query.projs, query.preds)
         self.cache[query.query_str] = copy
 
     def flush_cache(self, qid):
-        pickle.dump(self.cache, open(self.cache_path(qid), 'wb'))
+        if not os.path.exists(self.cache_path(qid)):
+            pickle.dump(self.cache, open(self.cache_path(qid), 'wb'))
 
     def parse_one(self, qid, cqid, query_str):
         if query_str in self.cache:
@@ -65,7 +68,7 @@ class SQLParser(object):
         print("Parsing CQs...")
         start = time.time()
 
-        self.load_cache(qid)
+        cache_loaded = self.load_cache(qid)
 
         # bar = tqdm(total=len(query_strs), desc='Parsing CQs')
 
@@ -85,9 +88,10 @@ class SQLParser(object):
             # bar.update(1)
         # bar.close()
 
-        print('Flushing cache...')
-        self.flush_cache(qid)
-        print('Done flushing cache.')
+        if not cache_loaded:
+            print('Flushing cache...')
+            self.flush_cache(qid)
+            print('Done flushing cache.')
 
         parse_time = time.time() - start
         print("From cache: {}/{}".format(from_cache, len(query_strs)))
