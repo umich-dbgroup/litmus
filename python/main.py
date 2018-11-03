@@ -61,11 +61,11 @@ def set_weights(Q, tqid, tq_rank):
     tq_idx = None
     if tq_rank == '1':
         tq_idx = 0
-    elif tq_rank == 'n/4':
+    elif tq_rank == 'n_over_4':
         tq_idx = int(len(Q) / 4) - 1
-    elif tq_rank == 'n/2':
+    elif tq_rank == 'n_over_2':
         tq_idx = int(len(Q) / 2) - 1
-    elif tq_rank == '3n/4':
+    elif tq_rank == '3n_over_4':
         tq_idx = int(3 * len(Q) / 4) - 1
     elif tq_rank == 'n':
         tq_idx = len(Q) - 1
