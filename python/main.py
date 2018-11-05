@@ -61,11 +61,11 @@ def set_weights(Q, tqid, tq_rank):
     tq_idx = None
     if tq_rank == '1':
         tq_idx = 0
-    elif tq_rank == 'n_over_4':
+    elif tq_rank == 'q1':
         tq_idx = int(len(Q) / 4) - 1
-    elif tq_rank == 'n_over_2':
+    elif tq_rank == 'half':
         tq_idx = int(len(Q) / 2) - 1
-    elif tq_rank == '3n_over_4':
+    elif tq_rank == 'q3':
         tq_idx = int(3 * len(Q) / 4) - 1
     elif tq_rank == 'n':
         tq_idx = len(Q) - 1
@@ -202,7 +202,7 @@ def main():
     argparser.add_argument('db')
     argparser.add_argument('mode', choices=['gav', 'greedyall', 'greedybb', 'greedyfirst'])
     # argparser.add_argument('--constrain', action='store_true')
-    argparser.add_argument('--tq_rank', choices=['random', '1', 'n_over_4', 'n_over_2', '3n_over_4', 'n'], default='random')
+    argparser.add_argument('--tq_rank', choices=['random', '1', 'q1', 'half', 'q3', 'n'], default='random')
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--info', choices=['type', 'range'], default='range')
     argparser.add_argument('--email')
