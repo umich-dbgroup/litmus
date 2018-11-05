@@ -441,6 +441,8 @@ class GuessAndVerify(Base):
                     tuple_list = list(cq_tuples)
                     random.shuffle(tuple_list)
 
+                    found = False
+
                     for t in tuple_list:
                         tuples = { t: set([ int(cqid) ]) }
 
@@ -452,9 +454,12 @@ class GuessAndVerify(Base):
                         objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
 
                         if tuples[t] != set(Q.keys()):
+                            found = True
                             break
+                        else:
+                            cq.tuples = None
 
-                    if tuples[t] != set(Q.keys()):
+                    if found:
                         break
             except Exception as e:
                 if str(e).startswith('Timeout'):
