@@ -50,7 +50,8 @@ class Base(object):
             cursor.execute('EXPLAIN ' + cq.query_str)
             cost = 1
             for row in cursor.fetchall():
-                cost *= row[9]
+                if row[9]:
+                    cost *= row[9]
             by_cost.append((cqid, cost))
 
         by_cost.sort(key=lambda x: x[1])
