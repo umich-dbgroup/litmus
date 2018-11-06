@@ -18,11 +18,10 @@ TOP_TUPLES = 5
 BOUND_LIMIT = 15
 
 class Base(object):
-    def __init__(self, db, aig=None, info=None, constrain=False):
+    def __init__(self, db, aig=None, info=None):
         self.db = db
         self.aig = aig
         self.info = info
-        self.constrain = constrain
 
     def execute(self, cqs):
         result_meta = {
@@ -34,7 +33,7 @@ class Base(object):
         }
         return None, None, result_meta
 
-    def run_cqs(self, cqs, msg_append='', qig=None, constrain=False, tuples=None):
+    def run_cqs(self, cqs, msg_append='', qig=None, tuples=None):
         if tuples is None:
             tuples = {}
         valid_cqs = []
@@ -44,22 +43,51 @@ class Base(object):
 
         # bar = tqdm(total=len(cqs), desc='Running CQs{}'.format(msg_append))
 
-        start = time.time()
+        # perform ROUGH cost estimation
+        by_cost = []
         for cqid, cq in cqs.items():
+            cursor = self.db.cursor()
+            cursor.execute('EXPLAIN ' + cq.query_str)
+            cost = 1
+            for row in cursor.fetchall():
+                cost *= row[9]
+            by_cost.append((cqid, cost))
+
+        by_cost.sort(key=lambda x: x[1])
+
+        timeout_encountered = False
+
+        start = time.time()
+        for cqid, cost in by_cost:
+            cq = cqs[cqid]
+
+            if timeout_encountered:
+                timed_out.append(cqid)
+                cq.timed_out = True
+
+                if cq.tuples:
+                    for t in cq.tuples:
+                        if t not in tuples:
+                            tuples[t] = set()
+                        tuples[t].add(cqid)
+                continue
+
             try:
                 if not isinstance(cq, Query):
                     raise Exception('CQ should be a Query object.')
 
-                if constrain:
-                    cq.constrain(qig)
-                else:
-                    cq.unconstrain()
+                # if constrain:
+                #     cq.constrain(qig)
+                # else:
+                #     cq.unconstrain()
 
                 cq_tuples, was_cached = self.db.execute(cq)
                 if was_cached:
                     cached.append(cqid)
                 if cq.timed_out:
+                    timeout_encountered = True
                     timed_out.append(cqid)
+                    continue
 
                 if cq_tuples:
                     valid_cqs.append(cqid)
@@ -73,6 +101,38 @@ class Base(object):
                 sql_errors.append(cqid)
             # bar.update(1)
         # bar.close()
+
+        # corner case where there are no tuples and there are timed out CQs
+        if not tuples and timed_out:
+            # sort timed out cqs by descending weight
+            by_weight = sorted(filter(lambda x: x[0] in timed_out, cqs.items()), key=lambda x: -x[1].w)
+
+            # incremental execution of each CQ
+            for cqid, cq in by_weight:
+                found = False
+                while True:
+                    t = self.db.execute_incremental(cq)
+
+                    if not t:
+                        break
+
+                    if t not in tuples:
+                        tuples[t] = set()
+                    tuples[t].add(cqid)
+
+                    for other_cqid in (set(cqs.keys()) - set([cqid])):
+                        if Query.tuple_in_query(self.db, t, cqs[other_cqid]):
+                            tuples[t].add(other_cqid)
+
+                    if tuples[t] != set(cqs.keys()):
+                        found = True
+                        break
+                    else:
+                        del tuples[t]
+
+                if found:
+                    break
+
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
 
@@ -104,14 +164,16 @@ class Base(object):
                 objectives[t] = self.objective(Q, S)
                 memo[S_key] = objectives[t]
 
-        sorted_objectives = OrderedDict(sorted(objectives.items(), key=lambda t: t[1]))
         objective_time = time.time() - start
         print("Done calculating objectives [{}s]".format(objective_time))
-        return sorted_objectives, objective_time
+        return objectives, objective_time
 
     def min_objective_tuples(self, Q, T, objectives, check_Q):
         print('Finding min objective tuples, including timed out queries...')
         start = time.time()
+
+        objectives = OrderedDict(sorted(objectives.items(), key=lambda t: t[1]))
+        to_delete = []
         for t, objective in objectives.items():
             S = T[t]
 
@@ -127,12 +189,16 @@ class Base(object):
                 # remove this tuple from all CQ caches
                 for cqid in S:
                     Q[cqid].tuples.discard(t)
+                to_delete.append(t)
             else:
                 # only execute up to the first
                 break
 
+        for t in to_delete:
+            del objectives[t]
+
         # resort
-        objectives = OrderedDict(sorted(objectives.items(), key=lambda t: t[1]))
+        # objectives = OrderedDict(sorted(objectives.items(), key=lambda t: t[1]))
 
         min_obj_time = time.time() - start
         print('Done finding min objective tuples. [{}s]'.format(min_obj_time))
@@ -172,11 +238,11 @@ class GreedyAll(Base):
             t_hat_cqids = tuples[t_hat]
 
             # if we are working with timed out queries, just run the iteration again until you come up with a tuple that distinguishes at least one CQ
-            if t_hat_cqids == Q.keys() and timed_out:
-                t_hat, t_hat_cqids, r_meta = self.execute(Q)
-                query_time += r_meta['query_time']
-                comp_time += r_meta['comp_time']
-                min_objective = r_meta['objective']
+            # if t_hat_cqids == Q.keys() and timed_out:
+            #     t_hat, t_hat_cqids, r_meta = self.execute(Q)
+            #     query_time += r_meta['query_time']
+            #     comp_time += r_meta['comp_time']
+            #     min_objective = r_meta['objective']
 
         result_meta = {
             'objective': min_objective,
@@ -303,7 +369,7 @@ class GreedyBB(GreedyAll):
                 continue
 
             if not X <= executed:
-                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, constrain=self.constrain, tuples=tuples)
+                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, X), qig=self.qig, tuples=tuples)
                 executed |= X
                 total_query_time += query_time
 
@@ -379,7 +445,7 @@ class GreedyFirst(GreedyBB):
             B, C_i = C_info
 
             if not C_i <= executed:
-                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, constrain=self.constrain, tuples=tuples)
+                tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(self.set_to_dict(Q, C_i), qig=self.qig, tuples=tuples)
                 executed |= C_i
                 total_query_time += query_time
 
@@ -429,13 +495,13 @@ class GuessAndVerify(Base):
             try:
                 exec_cqs.append(cqid)
                 print(cq.query_str)
-                cq.unconstrain()
+                # cq.unconstrain()
                 cq_tuples, was_cached = self.db.execute(cq)
 
                 if was_cached:
                     cached.append(cqid)
 
-                if len(cq_tuples) > 0:
+                if cq_tuples:
                     valid_cqs.append(cqid)
 
                     tuple_list = list(cq_tuples)
