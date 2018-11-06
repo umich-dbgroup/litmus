@@ -186,10 +186,11 @@ class Base(object):
             # recalculate objective for this
             objectives[t] = self.objective(Q, S)
 
-            if S == Q.keys():
+            if S == set(Q.keys()):
                 # remove this tuple from all CQ caches
-                for cqid in S:
-                    Q[cqid].tuples.discard(t)
+                # for cqid in S:
+                #     if Q[cqid].tuples:
+                #         Q[cqid].tuples.discard(t)
                 to_delete.append(t)
             else:
                 # only execute up to the first
