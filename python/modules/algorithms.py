@@ -33,6 +33,15 @@ class Base(object):
         }
         return None, None, result_meta
 
+    def sort_by_cost(self, cqs):
+        # perform ROUGH cost estimation
+        by_cost = []
+        for cqid, cq in cqs.items():
+            by_cost.append((cqid, cq.get_cost(self.db)))
+
+        by_cost.sort(key=lambda x: x[1])
+        return by_cost
+
     def run_cqs(self, cqs, msg_append='', qig=None, tuples=None):
         if tuples is None:
             tuples = {}
@@ -40,53 +49,28 @@ class Base(object):
         timed_out = []
         sql_errors = []
         cached = []
-
-        # bar = tqdm(total=len(cqs), desc='Running CQs{}'.format(msg_append))
-
-        # perform ROUGH cost estimation
-        by_cost = []
-        for cqid, cq in cqs.items():
-            by_cost.append((cqid, cq.get_cost(self.db)))
-
-        by_cost.sort(key=lambda x: x[1])
-
         timeout_encountered = False
 
         start = time.time()
-        for cqid, cost in by_cost:
+        for cqid, cost in self.sort_by_cost(cqs):
             cq = cqs[cqid]
 
             if timeout_encountered:
-                timed_out.append(cqid)
+                # all CQs with higher cost are automatically assumed timed out
                 cq.timed_out = True
 
-                if cq.tuples:
-                    for t in cq.tuples:
-                        if t not in tuples:
-                            tuples[t] = set()
-                        tuples[t].add(cqid)
-                continue
-
             try:
-                if not isinstance(cq, Query):
-                    raise Exception('CQ should be a Query object.')
-
-                # if constrain:
-                #     cq.constrain(qig)
-                # else:
-                #     cq.unconstrain()
-
                 cq_tuples, was_cached = self.db.execute(cq)
                 if was_cached:
                     cached.append(cqid)
+
                 if cq.timed_out:
                     timeout_encountered = True
                     timed_out.append(cqid)
-                    continue
-
-                if cq_tuples:
+                elif cq.tuples:
                     valid_cqs.append(cqid)
 
+                if cq.tuples:
                     for t in cq_tuples:
                         if t not in tuples:
                             tuples[t] = set()
@@ -94,8 +78,6 @@ class Base(object):
             except Exception as e:
                 print(traceback.format_exc())
                 sql_errors.append(cqid)
-            # bar.update(1)
-        # bar.close()
 
         query_time = time.time() - start
         print("Done executing CQs [{}s]".format(query_time))
@@ -105,6 +87,9 @@ class Base(object):
         return tuples, valid_cqs, timed_out, sql_errors, query_time
 
     def incremental_exec(self, Q, tuples, timed_out):
+        print('Running incremental execution for timed out queries...')
+        start = time.time()
+
         # sort timed out cqs by descending weight
         by_weight = sorted(filter(lambda x: x[0] in timed_out, Q.items()), key=lambda x: -x[1].w)
 
@@ -112,9 +97,11 @@ class Base(object):
         for cqid, cq in by_weight:
             found = False
             while True:
+                print('Running CQ {} incremental.'.format(cqid))
                 t = self.db.execute_incremental(cq)
 
                 if not t:
+                    print('No tuple found.')
                     break
 
                 if t not in tuples:
@@ -122,19 +109,26 @@ class Base(object):
                 tuples[t].add(cqid)
 
                 for other_cqid in (set(timed_out) - set([cqid])):
+                    print('Checking if it belongs to {}...'.format(other_cqid))
                     if Query.tuple_in_query(self.db, t, Q[other_cqid]):
                         tuples[t].add(other_cqid)
 
                 if tuples[t] != set(Q.keys()):
+                    print('Found incremental tuple.')
                     found = True
                     break
                 else:
+                    print('Belongs to all CQs, skip.')
                     del tuples[t]
+                    cq.empty_cache()
 
             if found:
                 break
 
-        return tuples
+        incr_time = time.time() - start
+        print('Done running incremental execution [{}s]'.format(incr_time))
+
+        return tuples, incr_time
 
     def objective(self, Q, S):
         S_w = 0
@@ -165,6 +159,7 @@ class Base(object):
         return objectives, objective_time
 
     def min_objective_tuples(self, Q, T, objectives, check_Q):
+        # operates on "minimal intervention policy"
         print('Finding min objective tuples, including timed out queries...')
         start = time.time()
 
@@ -182,10 +177,6 @@ class Base(object):
             objectives[t] = self.objective(Q, S)
 
             if S == set(Q.keys()):
-                # remove this tuple from all CQ caches
-                # for cqid in S:
-                #     if Q[cqid].tuples:
-                #         Q[cqid].tuples.discard(t)
                 to_delete.append(t)
             else:
                 # only execute up to the first
@@ -193,9 +184,6 @@ class Base(object):
 
         for t in to_delete:
             del objectives[t]
-
-        # resort
-        # objectives = OrderedDict(sorted(objectives.items(), key=lambda t: t[1]))
 
         min_obj_time = time.time() - start
         print('Done finding min objective tuples. [{}s]'.format(min_obj_time))
@@ -222,11 +210,7 @@ class GreedyAll(Base):
 
         incr_time = 0
         if not tuples and timed_out:
-            print('Running incremental execution for timed out queries...')
-            start = time.time()
-            tuples = self.incremental_exec(Q, tuples, timed_out)
-            incr_time = time.time() - start
-            print('Done running incremental execution [{}s]'.format(incr_time))
+            tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
 
         t_hat = None
         t_hat_cqids = None
@@ -241,13 +225,6 @@ class GreedyAll(Base):
 
             t_hat, min_objective = objectives.items()[0]
             t_hat_cqids = tuples[t_hat]
-
-            # if we are working with timed out queries, just run the iteration again until you come up with a tuple that distinguishes at least one CQ
-            # if t_hat_cqids == Q.keys() and timed_out:
-            #     t_hat, t_hat_cqids, r_meta = self.execute(Q)
-            #     query_time += r_meta['query_time']
-            #     comp_time += r_meta['comp_time']
-            #     min_objective = r_meta['objective']
 
         result_meta = {
             'objective': min_objective,
@@ -379,11 +356,7 @@ class GreedyBB(GreedyAll):
                 total_query_time += query_time
 
                 if not tuples and timed_out:
-                    print('Running incremental execution for timed out queries...')
-                    start = time.time()
-                    tuples = self.incremental_exec(Q, tuples, timed_out)
-                    incr_time = time.time() - start
-                    print('Done running incremental execution [{}s]'.format(incr_time))
+                    tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
                     total_query_time += incr_time
 
             start = time.time()
@@ -463,11 +436,7 @@ class GreedyFirst(GreedyBB):
                 total_query_time += query_time
 
                 if not tuples and timed_out:
-                    print('Running incremental execution for timed out queries...')
-                    start = time.time()
-                    tuples = self.incremental_exec(Q, tuples, timed_out)
-                    incr_time = time.time() - start
-                    print('Done running incremental execution [{}s]'.format(incr_time))
+                    tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
                     total_query_time += incr_time
 
             start = time.time()
@@ -561,11 +530,7 @@ class GuessAndVerify(Base):
         self.print_stats(exec_cqs, timed_out, sql_errors, valid_cqs, cached)
 
         if not tuples and timed_out:
-            print('Running incremental execution for timed out queries...')
-            start = time.time()
-            tuples = self.incremental_exec(Q, tuples, timed_out)
-            incr_time = time.time() - start
-            print('Done running incremental execution [{}s]'.format(incr_time))
+            tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
 
         total_query_time += time.time() - start
 
