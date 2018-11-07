@@ -498,8 +498,10 @@ class GuessAndVerify(Base):
         for cqid, cq in sorted_cqs.items():
             try:
                 if cq.get_cost(self.db) >= timeout_cost:
+                    cq.timed_out = True
+                    timed_out.append(cqid)
                     continue
-    
+
                 exec_cqs.append(cqid)
                 print(cq.query_str)
                 cq_tuples, was_cached = self.db.execute(cq)
