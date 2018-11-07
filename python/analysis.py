@@ -219,8 +219,8 @@ def main():
     table.column_alignments['SLOWEST TASKS'] = BeautifulTable.ALIGN_LEFT
     table.column_alignments['TIME'] = BeautifulTable.ALIGN_RIGHT
     table.row_separator_char = ''
-    for idx in np.argsort(stats['max_iter_times'])[::-1][:11]:
-        table.append_row([stats['qids'][idx], stats['max_iter_times'][idx]])
+    for idx in np.argsort(stats['total_times'])[::-1][:11]:
+        table.append_row([stats['qids'][idx], stats['total_times'][idx]])
     print(table)
 
 if __name__ == '__main__':
