@@ -415,6 +415,8 @@ class Database(object):
 
         if cq.cached:
             return cq.tuples, True
+        elif cq.timed_out:
+            return None, False
 
         # if cq.timed_out:
         #     if cq.tuples:
