@@ -258,6 +258,8 @@ def main():
                     # results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.tq_rank)
                     # save_cache(results, cache_path)
                 # print_result(qid, results[qid])
+
+            responses = OrderedDict(sorted(responses.items(), key=lambda r: r[0]))
             for qid, res in responses.items():
                 results[qid] = res.get()
                 print('Finished query {}.'.format(qid))
