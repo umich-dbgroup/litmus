@@ -46,7 +46,7 @@ class Base(object):
         # perform ROUGH cost estimation
         by_cost = []
         for cqid, cq in cqs.items():
-            by_cost.append((cqid, cq.get_cost()))
+            by_cost.append((cqid, cq.get_cost(self.db)))
 
         by_cost.sort(key=lambda x: x[1])
 
