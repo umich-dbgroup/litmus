@@ -131,7 +131,7 @@ def execute_mode(mode, db_name, qid, task, info, tq_rank, log_dir):
         result_metas = []
         iters = 0
         while len(Q) > len(task['ans']):
-            print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(Q), len(task['ans'])))
+            print('Running Iteration {}, CQ #: {}, TQID: {}'.format(iters + 1, len(Q), task['ans'][0]))
             tuple, tuple_cqids, meta = algorithm.execute(Q)
             iters += 1
 
