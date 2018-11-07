@@ -25,7 +25,7 @@ class Query(object):
         self.w = w
 
     def get_cost(self, db):
-        if self.cost:
+        if hasattr(self, 'cost'):
             return self.cost
         else:
             cursor = db.cursor()
