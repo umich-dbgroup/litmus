@@ -492,13 +492,17 @@ class GuessAndVerify(Base):
 
         tuples = {}
 
-        start = time.time()
+        total_query_time = 0
+        total_comp_time = 0
+
         for cqid, cq in sorted_cqs.items():
             try:
                 exec_cqs.append(cqid)
                 print(cq.query_str)
                 # cq.unconstrain()
+                start = time.time()
                 cq_tuples, was_cached = self.db.execute(cq)
+                total_query_time += time.time() - start
 
                 if was_cached:
                     cached.append(cqid)
@@ -521,6 +525,8 @@ class GuessAndVerify(Base):
                         objectives, calc_objective_time = self.calc_objectives(Q, tuples)
                         objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
 
+                        total_comp_time += calc_objective_time + min_objective_time
+
                         if tuples[t] != set(Q.keys()):
                             found = True
                             break
@@ -536,16 +542,11 @@ class GuessAndVerify(Base):
                     print(traceback.format_exc())
                     sql_errors.append(cqid)
 
-        query_time = time.time() - start
-        print("Done executing CQs [{}s]".format(query_time))
-
         self.print_stats(exec_cqs, timed_out, sql_errors, valid_cqs, cached)
 
         t_hat = None
         t_hat_cqids = None
         min_objective = 0
-        dist_time = 0
-        min_objective_time = 0
         if tuples:
             self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
             t_hat, min_objective = objectives.items()[0]
@@ -555,7 +556,7 @@ class GuessAndVerify(Base):
             'objective': min_objective,
             'total_cq': len(Q),
             'exec_cq': len(exec_cqs),
-            'query_time': query_time,
-            'comp_time': calc_objective_time + min_objective_time
+            'query_time': total_query_time,
+            'comp_time': total_comp_time
         }
         return t_hat, t_hat_cqids, result_meta
