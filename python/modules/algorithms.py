@@ -189,6 +189,14 @@ class Base(object):
         print('Done finding min objective tuples. [{}s]'.format(min_obj_time))
         return objectives, min_obj_time
 
+    def return_tuple(self, Q, t, cqids, result_meta):
+        # remove t from all CQ caches in Q before returning
+        for cqid, cq in Q.items():
+            if cq.tuples:
+                cq.tuples.discard(t)
+
+        return t, cqids, result_meta
+
     def print_tuple(self, t, objective, S):
         print("{}, Objective: {}, # CQs: {}, CQs: {}".format(t, objective, len(S), S))
 
@@ -233,7 +241,7 @@ class GreedyAll(Base):
             'query_time': query_time + incr_time,
             'comp_time': comp_time
         }
-        return t_hat, t_hat_cqids, result_meta
+        return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
 
 class GreedyBB(GreedyAll):
     def branch(self, Q, C, tuples):
@@ -395,7 +403,7 @@ class GreedyBB(GreedyAll):
             'query_time': total_query_time,
             'comp_time': comp_time
         }
-        return t_hat, t_hat_cqids, result_meta
+        return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
 
 class GreedyFirst(GreedyBB):
     def tuples_not_in_future_cliques(self, C, tuples, i):
@@ -459,7 +467,7 @@ class GreedyFirst(GreedyBB):
                     'query_time': total_query_time,
                     'comp_time': calc_objective_time + min_objective_time + future_check_time
                 }
-                return t_hat, t_hat_cqids, result_meta
+                return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
 
 
 class GuessAndVerify(Base):
@@ -551,4 +559,4 @@ class GuessAndVerify(Base):
             'query_time': total_query_time,
             'comp_time': calc_objective_time + min_objective_time
         }
-        return t_hat, t_hat_cqids, result_meta
+        return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
