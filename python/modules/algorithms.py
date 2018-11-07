@@ -195,6 +195,10 @@ class Base(object):
             if cq.tuples:
                 cq.tuples.discard(t)
 
+                if not cq.tuples:
+                    # if it's the only tuple, then empty cache so it runs again next time for incremental exec
+                    cq.empty_cache()
+
         return t, cqids, result_meta
 
     def print_tuple(self, t, objective, S):
