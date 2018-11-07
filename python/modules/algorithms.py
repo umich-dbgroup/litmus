@@ -490,15 +490,18 @@ class GuessAndVerify(Base):
         print("Executing CQs in weighted order and select 1 random tuple...")
         sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: -x[1].w, cmp=self.cmp_w_randomize_ties))
 
+        timeout_cost = None
         tuples = {}
 
         total_query_time = 0
         start = time.time()
         for cqid, cq in sorted_cqs.items():
             try:
+                if cq.get_cost(self.db) >= timeout_cost:
+                    continue
+    
                 exec_cqs.append(cqid)
                 print(cq.query_str)
-                # cq.unconstrain()
                 cq_tuples, was_cached = self.db.execute(cq)
 
                 if was_cached:
@@ -506,6 +509,7 @@ class GuessAndVerify(Base):
 
                 if cq.timed_out:
                     timed_out.append(cqid)
+                    timeout_cost = cq.get_cost(self.db)
                     continue
 
                 if cq_tuples:
