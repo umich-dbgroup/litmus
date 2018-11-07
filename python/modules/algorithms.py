@@ -529,6 +529,10 @@ class GuessAndVerify(Base):
                 if was_cached:
                     cached.append(cqid)
 
+                if cq.timed_out:
+                    timed_out.append(cqid)
+                    continue
+
                 if cq_tuples:
                     valid_cqs.append(cqid)
 
@@ -553,36 +557,30 @@ class GuessAndVerify(Base):
                             break
                         else:
                             cq.tuples = None
-
+                            tuples = {}
                     if found:
                         break
             except Exception as e:
-                if str(e).startswith('Timeout'):
-                    timed_out.append(cqid)
-                else:
-                    print(traceback.format_exc())
-                    sql_errors.append(cqid)
+                print(traceback.format_exc())
+                sql_errors.append(cqid)
+
+        self.print_stats(exec_cqs, timed_out, sql_errors, valid_cqs, cached)
 
         if not tuples and timed_out:
             print('Running incremental execution for timed out queries...')
             start = time.time()
             tuples = self.incremental_exec(Q, tuples, timed_out)
             incr_time = time.time() - start
-
-            objectives, calc_objective_time = self.calc_objectives(Q, tuples)
-            objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
             print('Done running incremental execution [{}s]'.format(incr_time))
 
         total_query_time += time.time() - start
-
-        self.print_stats(exec_cqs, timed_out, sql_errors, valid_cqs, cached)
 
         t_hat = None
         t_hat_cqids = None
         min_objective = 0
         if tuples:
             objectives, calc_objective_time = self.calc_objectives(Q, tuples)
-            objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, check_queries)
+            objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, [])
             self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
             t_hat, min_objective = objectives.items()[0]
             t_hat_cqids = tuples[t_hat]
