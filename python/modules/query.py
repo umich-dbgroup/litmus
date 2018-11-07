@@ -24,6 +24,19 @@ class Query(object):
     def set_w(self, w):
         self.w = w
 
+    def get_cost(self, db):
+        if self.cost:
+            return self.cost
+        else:
+            cursor = db.cursor()
+            cursor.execute('EXPLAIN ' + self.query_str)
+            cost = 1
+            for row in cursor.fetchall():
+                if row[9]:
+                    cost *= row[9]
+            self.cost = cost
+            return self.cost
+
     # def constrained(self):
     #     if self.constraints is None:
     #         return self.query_str
