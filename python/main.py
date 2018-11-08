@@ -85,7 +85,7 @@ def set_weights(Q, tqid, tq_rank):
     for i, cqid in enumerate(cqids):
         Q[cqid].set_w(len(Q) - i)
 
-def run_task(mode, db, qid, task, info, aig, tq_rank):
+def run_task(mode, db, parser, qid, task, info, aig, tq_rank):
     print("QUERY {}: {}".format(qid, mode))
 
     algorithm = None
@@ -165,9 +165,9 @@ def start_thread(mode, db_name, qid, task, info, tq_rank, log_dir=None):
         log_path = os.path.join(log_dir, str(qid) + '.log')
 
         with Logger(log_path):
-            return run_task(mode, db, qid, task, info, aig, tq_rank)
+            return run_task(mode, db, parser, qid, task, info, aig, tq_rank)
     else:
-        return run_task(mode, db, qid, task, info, aig, tq_rank)
+        return run_task(mode, db, parser, qid, task, info, aig, tq_rank)
 
 def load_tasks(data_dir, db_name):
     with open(os.path.join(data_dir, db_name + '.json')) as f:
