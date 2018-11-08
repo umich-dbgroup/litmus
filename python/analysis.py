@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pickle
 
-from analysis_single import lget_stats
+from analysis_single import get_stats
 
 def get_latex_format(name, results):
     output_str = name + ':\n'
