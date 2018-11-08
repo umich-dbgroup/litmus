@@ -8,7 +8,7 @@ from analysis_single import get_stats
 def get_latex_format(name, results):
     output_str = name + ':\n'
     for r in results:
-        output_str += r + ' '
+        output_str += str(r) + ' '
     return output_str
 
 def main():
