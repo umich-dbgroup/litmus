@@ -15,10 +15,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('db')
     parser.add_argument('mode')
-    parser.add_argument('qid_min', type=int)
-    parser.add_argument('qid_max', type=int)
-    parser.add_argument('tqc_min', type=float)
-    parser.add_argument('tqc_max', type=float)
+    parser.add_argument('--qid_min', type=int)
+    parser.add_argument('--qid_max', type=int)
+    parser.add_argument('--tqc_min', type=float)
+    parser.add_argument('--tqc_max', type=float)
     args = parser.parse_args()
 
     TQ_RANKS = ['1', 'q1', 'half', 'q3', 'n']
