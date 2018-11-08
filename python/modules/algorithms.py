@@ -186,6 +186,7 @@ class Base(object):
 
         for t in to_delete:
             del objectives[t]
+            del T[t]
 
         min_obj_time = time.time() - start
         print('Done finding min objective tuples. [{}s]'.format(min_obj_time))
@@ -222,29 +223,31 @@ class GreedyAll(Base):
     def execute(self, Q):
         tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(Q)
 
-        incr_time = 0
-        if not tuples and timed_out:
-            tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
-
+        total_incr_time = 0
+        comp_time = 0
         t_hat = None
         t_hat_cqids = None
         min_objective = 0
-        comp_time = 0
-        if tuples:
+        while not t_hat:
+            if not tuples and timed_out:
+                tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
+                total_incr_time += incr_time
             objectives, objective_time = self.calc_objectives(Q, tuples)
             comp_time += objective_time
             objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, timed_out)
             comp_time += min_objective_time
-            self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
 
-            t_hat, min_objective = objectives.items()[0]
-            t_hat_cqids = tuples[t_hat]
+            if objectives:
+                t_hat, min_objective = objectives.items()[0]
+                t_hat_cqids = tuples[t_hat]
+
+        self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
 
         result_meta = {
             'objective': min_objective,
             'total_cq': len(Q),
             'exec_cq': len(Q),
-            'query_time': query_time + incr_time,
+            'query_time': query_time + total_incr_time,
             'comp_time': comp_time
         }
         return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
