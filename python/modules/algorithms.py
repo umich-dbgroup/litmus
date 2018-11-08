@@ -94,15 +94,17 @@ class Base(object):
         by_weight = sorted(filter(lambda x: x[0] in timed_out, Q.items()), key=lambda x: -x[1].w)
 
         # incremental execution of each CQ
-        for cqid, cq in by_weight:
+        while True:
+            no_tuple_count = 0
             found = False
-            while True:
+            for cqid, cq in by_weight:
                 print('Running CQ {} incremental.'.format(cqid))
                 t = self.db.execute_incremental(cq)
 
                 if not t:
                     print('No tuple found.')
-                    break
+                    no_tuple_count += 1
+                    continue
 
                 if t not in tuples:
                     tuples[t] = set()
@@ -121,6 +123,9 @@ class Base(object):
                     print('Belongs to all CQs, skip.')
                     del tuples[t]
                     cq.empty_cache()
+
+            if no_tuple_count == len(by_weight):
+                break
 
             if found:
                 break
