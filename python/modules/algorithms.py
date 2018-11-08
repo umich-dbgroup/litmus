@@ -497,7 +497,7 @@ class GuessAndVerify(Base):
         start = time.time()
         for cqid, cq in sorted_cqs.items():
             try:
-                if cq.get_cost(self.db) >= timeout_cost:
+                if timeout_cost and cq.get_cost(self.db) >= timeout_cost:
                     cq.timed_out = True
                     timed_out.append(cqid)
                     continue
