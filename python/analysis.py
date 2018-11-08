@@ -30,7 +30,7 @@ def main():
         stats = get_stats(args.db, args.mode, tq_rank, qid_min=args.qid_min, qid_max=args.qid_max, tqc_min=args.tqc_min, tqc_max=args.tqc_max)
 
         if stats:
-            iters.append((i, np.mean(stats['iters']))
+            iters.append((i, np.mean(stats['iters'])))
             total_times.append((i, np.mean(stats['total_times'])))
             times_per_iter.append((i, np.mean(stats['times_per_iter'])))
 
