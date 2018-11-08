@@ -1,5 +1,6 @@
 import argparse
 import os
+import numpy as np
 import pickle
 
 from analysis_single import lget_stats
