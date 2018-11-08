@@ -119,7 +119,7 @@ def get_stats(db_name, mode, tq_rank, qid_min=None, qid_max=None, tqc_min=None, 
     config.read('config.ini')
 
     tqcs = {}
-    if args.tqc_min or args.tqc_max:
+    if tqc_min or tqc_max:
         tqcs = load_tqc_cache(config, db_name)
 
     dir = config.get('main', 'results_dir')
