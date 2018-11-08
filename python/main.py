@@ -274,12 +274,12 @@ def main():
             save_results(results, config.get('main', 'results_dir'), file_prefix)
         if args.email is not None:
             mailer = Mailer()
-            mailer.send(args.email, 'Done {}'.format(file_prefix), 'Done')
+            mailer.send(args.email, 'Done running Litmus', 'Done {}'.format(file_prefix))
     except Exception as e:
         stacktrace = str(traceback.format_exc())
         if args.email is not None:
             mailer = Mailer()
-            mailer.send(args.email, 'Error {}'.format(file_prefix), stacktrace)
+            mailer.send(args.email, 'Error running litmus', file_prefix + '\n' + stacktrace)
         print(stacktrace)
 
 if __name__ == '__main__':
