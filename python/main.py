@@ -260,7 +260,7 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    responses[qid] = pool.apply_async(start_thread, (args.mode, args.db, qid, json.dumps(task), args.info, args.tq_rank, log_dir=log_dir))
+                    responses[qid] = pool.apply_async(start_thread, (args.mode, args.db, qid, json.dumps(task), args.info, args.tq_rank, log_dir))
                     # results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.tq_rank)
                     # save_cache(results, cache_path)
                 # print_result(qid, results[qid])
