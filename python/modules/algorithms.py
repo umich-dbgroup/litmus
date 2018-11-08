@@ -512,9 +512,8 @@ class GuessAndVerify(Base):
                 if cq.timed_out:
                     timed_out.append(cqid)
                     timeout_cost = cq.get_cost(self.db)
-                    continue
 
-                if cq_tuples:
+                if cq.tuples:
                     valid_cqs.append(cqid)
 
                     tuple_list = list(cq_tuples)
