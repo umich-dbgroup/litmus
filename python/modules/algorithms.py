@@ -1,17 +1,14 @@
 from __future__ import division, print_function
 
 import random
-import sys
 import time
 import traceback
 
 from collections import OrderedDict
 from itertools import combinations
 from Queue import PriorityQueue
-# from tqdm import tqdm
 
 from query import Query
-from partitions import PartSet
 from qig import QIGByType, QIGByRange
 
 TOP_TUPLES = 5
@@ -75,7 +72,7 @@ class Base(object):
                         if t not in tuples:
                             tuples[t] = set()
                         tuples[t].add(cqid)
-            except Exception as e:
+            except Exception:
                 print(traceback.format_exc())
                 sql_errors.append(cqid)
 
@@ -395,7 +392,6 @@ class GreedyBB(GreedyAll):
         min_objective = 0
         t_hat = None
         t_hat_cqids = None
-        dist_time = 0
         if T_hat:
             for t, S in T_hat.items()[0:TOP_TUPLES]:
                 self.print_tuple(t, self.objective(Q,S), S)
@@ -474,7 +470,7 @@ class GreedyFirst(GreedyBB):
                     'total_cq': len(Q),
                     'exec_cq': len(executed),
                     'query_time': total_query_time,
-                    'comp_time': calc_objective_time + min_objective_time + future_check_time
+                    'comp_time': qig_time + clique_time + calc_objective_time + min_objective_time + future_check_time
                 }
                 return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
 
@@ -545,7 +541,7 @@ class GuessAndVerify(Base):
                             tuples = {}
                     if found:
                         break
-            except Exception as e:
+            except Exception:
                 print(traceback.format_exc())
                 sql_errors.append(cqid)
 
