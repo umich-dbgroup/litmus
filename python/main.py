@@ -55,7 +55,7 @@ def user_feedback(cand_cqs, tuple_cqids, ans):
     return new_cqs
 
 def set_weights(Q, tqid, tq_rank):
-    if tq_rank == 'random':
+    if tq_rank == 'equal':
         return
 
     tq_idx = None
@@ -208,7 +208,7 @@ def main():
     argparser.add_argument('db')
     argparser.add_argument('mode', choices=['gav', 'greedyall', 'greedybb', 'greedyfirst'])
     # argparser.add_argument('--constrain', action='store_true')
-    argparser.add_argument('--tq_rank', choices=['random', '1', 'q1', 'half', 'q3', 'n'], default='random')
+    argparser.add_argument('--tq_rank', choices=['equal', '1', 'q1', 'half', 'q3', 'n'], default='equal')
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--info', choices=['type', 'range'], default='range')
     argparser.add_argument('--email')
