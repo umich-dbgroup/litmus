@@ -13,11 +13,14 @@ from main import load_tasks
 from modules.database import Database
 from modules.excludes import find_excludes
 from modules.parser import SQLParser
+from modules.query import Query
 
-def tqc(ans_count, intersect_counts):
+SAMPLE_COUNT = 1000
+
+def tqc(intersect_props):
     denom = 0
-    for cqid, count in intersect_counts.items():
-        denom += count / ans_count
+    for cqid, prop in intersect_props.items():
+        denom += prop
 
     return 1 - (1 / denom)
 
@@ -43,9 +46,9 @@ def get_tq_count(db):
     cursor.close()
     return row[0]
 
-def cq_tq_intersects(db, cqid, tqid, cq, tq, tq_count, tq_types):
+def cq_tq_intersect_props(db, cqid, tqid, cq, tq, tq_count, tq_types):
     if cqid == tqid:
-        return tq_count
+        return 1
 
     check = re.sub('(SELECT) (DISTINCT )?(.*) (FROM)', '\g<1> /*+ MAX_EXECUTION_TIME(100000) */ COUNT(DISTINCT \g<3>) \g<4> tq,', cq.query_str, count=1)
     if 'where' not in check.lower():
@@ -68,11 +71,25 @@ def cq_tq_intersects(db, cqid, tqid, cq, tq, tq_count, tq_types):
         cursor.execute(check)
         row = cursor.fetchone()
         cursor.close()
-        return row[0]
+        return row[0] / tq_count
     except Exception as e:
         if str(e).startswith('3024'):
             cursor.close()
-            return 0
+
+            # if it times out, sample 1000-10000 tuples from the target query and check them individually
+            print('Intersect calculation timed out for {}; sampling...'.format(cqid))
+            intersects = 0
+            cursor = db.cursor()
+            try:
+                cursor.execute('SELECT /*+ MAX_EXECUTION_TIME(100000) */ * FROM tq LIMIT {}'.format(SAMPLE_COUNT))
+                for t in cursor.fetchall():
+                    if Query.tuple_in_query(db, t, cq):
+                        intersects += 1
+                cursor.close()
+                return intersects / SAMPLE_COUNT
+            except Exception:
+                cursor.close()
+                return 0
         else:
             raise e
 
@@ -88,22 +105,22 @@ def tqc_for_task(db, parser, qid, task):
     tq, cached = parser.parse_one(qid, ans_id, tq_str)
 
     tq_types = create_temp_table_for_tq(db, tq)
-    ans_count = get_tq_count(db)
+    tq_count = get_tq_count(db)
 
-    intersect_counts = {}
+    intersect_props = {}
 
     bar = tqdm(total=len(task['cqs']), desc='Calc intersects')
 
     for cqid, cq_str in task['cqs'].items():
         cq, cached = parser.parse_one(qid, cqid, cq_str)
 
-        intersect_counts[cqid] = cq_tq_intersects(db, cqid, ans_id, cq, tq, ans_count, tq_types)
+        intersect_props[cqid] = cq_tq_intersect_props(db, cqid, ans_id, cq, tq, tq_count, tq_types)
         bar.update(1)
     bar.close()
 
     # calculate TQC
-    result = tqc(ans_count, intersect_counts)
-    print('Intersects: {}'.format(intersect_counts))
+    result = tqc(intersect_props)
+    print('Intersect Proportion: {}'.format(intersect_props))
 
     cursor = db.cursor()
     cursor.execute('DROP TABLE tq')
@@ -160,9 +177,12 @@ def main():
                 save_tqc_cache(config, args.db, tqcs)
             print('TQ Confusion: {}'.format(tqcs[qid]))
             print()
+
         easy = 0
         hard = 0
         for qid, tqc in tqcs.items():
+            if qid in excludes:
+                continue
             if tqc <= 0.5:
                 easy += 1
             else:
