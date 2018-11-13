@@ -25,6 +25,11 @@ def find_excludes(db):
             excludes.append(int(qid))
             continue
 
+        # if there's only 1 CQ
+        if len(task['cqs']) <= 1:
+            excludes.append(int(qid))
+            continue
+
         # if any CQs contain non-SPJ keywords
         for cqid, cq in task['cqs'].items():
             if any(w in cq.lower() for w in NON_SPJ_WORDS):

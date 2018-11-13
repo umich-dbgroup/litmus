@@ -55,7 +55,7 @@ def user_feedback(cand_cqs, tuple_cqids, ans):
     return new_cqs
 
 def set_weights(Q, tqid, tq_rank):
-    if tq_rank == 'random':
+    if tq_rank == 'equal':
         return
 
     tq_idx = None
@@ -85,7 +85,60 @@ def set_weights(Q, tqid, tq_rank):
     for i, cqid in enumerate(cqids):
         Q[cqid].set_w(len(Q) - i)
 
-def execute_mode(mode, db_name, qid, task, info, tq_rank, log_dir):
+def run_task(mode, db, parser, qid, task, info, aig, tq_rank):
+    print("QUERY {}: {}".format(qid, mode))
+
+    algorithm = None
+
+    if mode == 'gav':
+        algorithm = GuessAndVerify(db)
+    elif mode == 'greedyall':
+        algorithm = GreedyAll(db)
+    elif mode == 'greedybb':
+        algorithm = GreedyBB(db, info=info, aig=aig)
+    elif mode == 'greedyfirst':
+        algorithm = GreedyFirst(db, info=info, aig=aig)
+
+    Q = parser.parse_many(qid, task['cqs'].copy())
+
+    set_weights(Q, task['ans'][0], tq_rank)
+
+    result_metas = []
+    iters = 0
+    while len(Q) > len(task['ans']):
+        print('Running Iteration {}, CQ #: {}, TQID: {}'.format(iters + 1, len(Q), task['ans'][0]))
+        tuple, tuple_cqids, meta = algorithm.execute(Q)
+        iters += 1
+
+        print(meta)
+        result_metas.append(meta)
+
+        if not tuple:
+            iters = None
+            break
+
+        Q = user_feedback(Q, tuple_cqids, task['ans'])
+
+    if iters is None or len(Q) == 0:
+        # if couldn't find tuple or no cand cqs left
+        iters = None
+        print('FAILED to find intended query(s).')
+    elif len(Q) == len(task['ans']) and all(k in task['ans'] for k in Q.keys()):
+        print('SUCCESS in finding intended query(s).')
+        print('TOTAL ITERATIONS: {}'.format(iters))
+    else:
+        raise Exception('Failed in finding intended query(s).')
+
+    print()
+
+    result = {
+        'total_cqs': len(task['cqs']),
+        'iters': iters,
+        'meta': result_metas
+    }
+    return result
+
+def start_thread(mode, db_name, qid, task, info, tq_rank, log_dir=None):
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
@@ -108,60 +161,13 @@ def execute_mode(mode, db_name, qid, task, info, tq_rank, log_dir):
         task_cleaned['ans'].append(int(cqid))
     task = task_cleaned
 
-    log_path = os.path.join(log_dir, str(qid) + '.log')
+    if log_dir:
+        log_path = os.path.join(log_dir, str(qid) + '.log')
 
-    with Logger(log_path):
-        print("QUERY {}: {}".format(qid, mode))
-
-        algorithm = None
-
-        if mode == 'gav':
-            algorithm = GuessAndVerify(db)
-        elif mode == 'greedyall':
-            algorithm = GreedyAll(db)
-        elif mode == 'greedybb':
-            algorithm = GreedyBB(db, info=info, aig=aig)
-        elif mode == 'greedyfirst':
-            algorithm = GreedyFirst(db, info=info, aig=aig)
-
-        Q = parser.parse_many(qid, task['cqs'].copy())
-
-        set_weights(Q, task['ans'][0], tq_rank)
-
-        result_metas = []
-        iters = 0
-        while len(Q) > len(task['ans']):
-            print('Running Iteration {}, CQ #: {}, Ans #: {}'.format(iters + 1, len(Q), len(task['ans'])))
-            tuple, tuple_cqids, meta = algorithm.execute(Q)
-            iters += 1
-
-            print(meta)
-            result_metas.append(meta)
-
-            if not tuple:
-                iters = None
-                break
-
-            Q = user_feedback(Q, tuple_cqids, task['ans'])
-
-        if iters is None or len(Q) == 0:
-            # if couldn't find tuple or no cand cqs left
-            iters = None
-            print('FAILED to find intended query(s).')
-        elif len(Q) == len(task['ans']) and all(k in task['ans'] for k in Q.keys()):
-            print('SUCCESS in finding intended query(s).')
-            print('TOTAL ITERATIONS: {}'.format(iters))
-        else:
-            raise Exception('Failed in finding intended query(s).')
-
-        print()
-
-        result = {
-            'total_cqs': len(task['cqs']),
-            'iters': iters,
-            'meta': result_metas
-        }
-        return result
+        with Logger(log_path):
+            return run_task(mode, db, parser, qid, task, info, aig, tq_rank)
+    else:
+        return run_task(mode, db, parser, qid, task, info, aig, tq_rank)
 
 def load_tasks(data_dir, db_name):
     with open(os.path.join(data_dir, db_name + '.json')) as f:
@@ -202,7 +208,7 @@ def main():
     argparser.add_argument('db')
     argparser.add_argument('mode', choices=['gav', 'greedyall', 'greedybb', 'greedyfirst'])
     # argparser.add_argument('--constrain', action='store_true')
-    argparser.add_argument('--tq_rank', choices=['random', '1', 'q1', 'half', 'q3', 'n'], default='random')
+    argparser.add_argument('--tq_rank', choices=['equal', '1', 'q1', 'half', 'q3', 'n'], default='equal')
     argparser.add_argument('--qid', type=int)
     argparser.add_argument('--info', choices=['type', 'range'], default='range')
     argparser.add_argument('--email')
@@ -237,7 +243,7 @@ def main():
             if args.qid in results:
                 print('QUERY {}: Skipping, already in cache.'.format(args.qid))
             else:
-                results[args.qid] = execute_mode(args.mode, args.db, args.qid, json.dumps(tasks[args.qid]), args.info, args.tq_rank, log_dir)
+                results[args.qid] = start_thread(args.mode, args.db, args.qid, json.dumps(tasks[args.qid]), args.info, args.tq_rank)
                 # save_cache(results, cache_path)
             # print_result(args.qid, results[args.qid])
         else:
@@ -254,10 +260,12 @@ def main():
                 if qid in results:
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
-                    responses[qid] = pool.apply_async(execute_mode, (args.mode, args.db, qid, json.dumps(task), args.info, args.tq_rank, log_dir))
+                    responses[qid] = pool.apply_async(start_thread, (args.mode, args.db, qid, json.dumps(task), args.info, args.tq_rank, log_dir))
                     # results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.tq_rank)
                     # save_cache(results, cache_path)
                 # print_result(qid, results[qid])
+
+            responses = OrderedDict(sorted(responses.items(), key=lambda r: r[0]))
             for qid, res in responses.items():
                 results[qid] = res.get()
                 print('Finished query {}.'.format(qid))
@@ -266,12 +274,12 @@ def main():
             save_results(results, config.get('main', 'results_dir'), file_prefix)
         if args.email is not None:
             mailer = Mailer()
-            mailer.send(args.email, 'Done {}'.format(args.db), 'Done')
+            mailer.send(args.email, 'Done running Litmus', 'Done {}'.format(file_prefix))
     except Exception as e:
         stacktrace = str(traceback.format_exc())
         if args.email is not None:
             mailer = Mailer()
-            mailer.send(args.email, 'Error {}'.format(args.db), stacktrace)
+            mailer.send(args.email, 'Error running litmus', file_prefix + '\n' + stacktrace)
         print(stacktrace)
 
 if __name__ == '__main__':

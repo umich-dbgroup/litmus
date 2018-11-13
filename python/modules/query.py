@@ -13,7 +13,7 @@ class Query(object):
 
         # cache tuples on self.tuples
         self.cached = False
-        self.cache_constraints = None
+        # self.cache_constraints = None
         self.tuples = None
 
         # set flag if timed out
@@ -24,68 +24,22 @@ class Query(object):
     def set_w(self, w):
         self.w = w
 
-    def constrained(self):
-        if self.constraints is None:
-            return self.query_str
+    def get_cost(self, db):
+        if hasattr(self, 'cost'):
+            return self.cost
         else:
-            return self.constrained_query_str
+            cursor = db.cursor()
+            cursor.execute('EXPLAIN ' + self.query_str)
+            cost = 1
+            for row in cursor.fetchall():
+                if row[9]:
+                    cost *= row[9]
+            self.cost = cost
+            return self.cost
 
-    def unconstrain(self):
-        self.constraints = None
-
-    def constrain(self, qig):
-        v = qig.get_vertex(self.cqid)
-
-        self.constraints = []
-        str_constraints = []
-
-        for pos, proj in enumerate(self.projs):
-            pos_type = v.meta['types'][pos]
-            pos_union = AttributeIntersect(pos_type)
-
-            for adj in v.get_adjacent():
-                e = v.get_edge(adj)
-
-                intersect = e.meta[pos]['intersect']
-
-                if not intersect.is_empty():
-                    if pos_type == 'text' and intersect.is_all():
-                        pos_union = intersect
-                        break
-
-                    pos_union.union(intersect)
-
-            self.constraints.append(pos_union)
-            if not pos_union.is_empty():
-                if pos_type == 'num':
-                    str_constraints.append(u'({} >= {} AND {} <= {})'.format(proj, pos_union.min, proj, pos_union.max))
-                elif pos_type == 'text' and not pos_union.is_all():
-                    str_constraints.append(u"({} IN ('{}'))".format(proj, u"','".join([val.replace("'", "''") for val in pos_union.vals])))
-
-        self.constrained_query_str = self.query_str
-        if str_constraints:
-            if 'where' not in self.constrained_query_str.lower():
-                self.constrained_query_str += u' WHERE '
-            else:
-                self.constrained_query_str += u' AND '
-
-            self.constrained_query_str += u' AND '.join(str_constraints)
-
-    def within_cache_constraints(self):
-        # if unconstrained, then this one is def within
-        if self.cache_constraints is None:
-            return True
-
-        # if other is constrained and this is not, it is not within
-        if self.constraints is None:
-            return False
-
-        # otherwise, cycle through each constraint
-        for i, c in enumerate(self.cache_constraints):
-            if not self.constraints[i].within(c):
-                return False
-
-        return True
+    def empty_cache(self):
+        self.cached = False
+        self.tuples = None
 
     @staticmethod
     def tuple_in_query(db, t, query):
