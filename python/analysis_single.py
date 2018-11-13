@@ -23,6 +23,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
     total_times = []
     times_per_iter = []
     max_iter_times = []
+    tqc_vals = []
 
     for qid, r in results.items():
         if min_qid and qid < min_qid:
@@ -44,6 +45,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         qids.append(qid)
         cq_counts.append(r['total_cqs'])
         each_iters.append(r['iters'])
+        tqc_vals.append(tqcs[qid])
 
         query_time = 0
         comp_time = 0
@@ -71,6 +73,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         'total': len(results),
         'analyzed': analyzed_count,
         'qids': qids,
+        'tqcs': tqc_vals,
         'cq_counts': cq_counts,
         'exec_cq_counts': exec_cq_counts,
         'iters': each_iters,
@@ -91,7 +94,8 @@ def avg_summaries(summaries):
         else:
             result['total'] += summary['total']
             result['analyzed'] += summary['analyzed']
-            assert(result['qids'] == summary['qids'])
+            result['tqcs'] = list(map(add,result['tqcs'],summary['tqcs']))
+            # assert(result['qids'] == summary['qids'])
             result['cq_counts'] = list(map(add,result['cq_counts'],summary['cq_counts']))
             result['exec_cq_counts'] = list(map(add,result['exec_cq_counts'],summary['exec_cq_counts']))
             result['iters'] = list(map(add,result['iters'],summary['iters']))
@@ -103,6 +107,7 @@ def avg_summaries(summaries):
 
     result['total'] /= len(summaries)
     result['analyzed'] /= len(summaries)
+    result['tqcs'] = [i / len(summaries) for i in result['tqcs']]
     result['cq_counts'] = [i / len(summaries) for i in result['cq_counts']]
     result['exec_cq_counts'] = [i / len(summaries) for i in result['exec_cq_counts']]
     result['iters'] = [i / len(summaries) for i in result['iters']]
@@ -118,9 +123,7 @@ def get_stats(db_name, mode, tq_rank, qid_min=None, qid_max=None, tqc_min=None, 
     config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
-    tqcs = {}
-    if tqc_min or tqc_max:
-        tqcs = load_tqc_cache(config, db_name)
+    tqcs = load_tqc_cache(config, db_name)
 
     dir = config.get('main', 'results_dir')
 
@@ -179,6 +182,7 @@ def main():
     table.row_separator_char = ''
     table.append_row(['Total Results', '{}'.format(stats['total'])])
     table.append_row(['Analyzed Results', '{}'.format(stats['analyzed'])])
+    table.append_row(['Mean TQC', '{}'.format(np.mean(stats['tqcs']))])
     table.append_row(['Min Total CQ #', '{:.3f}'.format(np.min(stats['cq_counts']))])
     table.append_row(['Mean Total CQ #', '{:.3f}'.format(np.mean(stats['cq_counts']))])
     table.append_row(['Max Total CQ #', '{:.3f}'.format(np.max(stats['cq_counts']))])
