@@ -183,12 +183,12 @@ def main():
         for qid, tqc in tqcs.items():
             if qid in excludes:
                 continue
-            if tqc <= 0.5:
+            if tqc <= 0.75:
                 easy += 1
             else:
                 hard += 1
-        print('TQC <= 0.5: {}'.format(easy))
-        print('TQC > 0.5: {}'.format(hard))
+        print('TQC <= 0.75: {}'.format(easy))
+        print('TQC > 0.75: {}'.format(hard))
 
 if __name__ == '__main__':
     main()
