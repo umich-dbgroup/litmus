@@ -13,7 +13,7 @@ from beautifultable import BeautifulTable
 from multiprocessing import Pool
 
 from modules.aig import AIG
-from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyFirst, TopW
+from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyFirst, TopW, L1S
 from modules.database import Database
 from modules.excludes import find_excludes
 from modules.logger import Logger
@@ -98,6 +98,8 @@ def run_task(mode, db, parser, qid, task, info, aig, tq_rank):
         algorithm = GreedyBB(db, info=info, aig=aig)
     elif mode == 'greedyfirst':
         algorithm = GreedyFirst(db, info=info, aig=aig)
+    elif mode == 'l1s':
+        algorithm = L1S(db)
 
     Q = parser.parse_many(qid, task['cqs'].copy())
 
@@ -206,7 +208,7 @@ def save_results(results, out_dir, prefix):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['topw', 'greedyall', 'greedybb', 'greedyfirst'])
+    argparser.add_argument('mode', choices=['topw', 'greedyall', 'greedybb', 'greedyfirst', 'l1s'])
     # argparser.add_argument('--constrain', action='store_true')
     argparser.add_argument('--tq_rank', choices=['equal', '1', 'q1', 'half', 'q3', 'n'], default='equal')
     argparser.add_argument('--qid', type=int)
@@ -261,9 +263,6 @@ def main():
                     print('QUERY {}: Skipping, already in cache.'.format(qid))
                 else:
                     responses[qid] = pool.apply_async(start_thread, (args.mode, args.db, qid, json.dumps(task), args.info, args.tq_rank, log_dir))
-                    # results[qid] = execute_mode(args.mode, db, parser, qid, task, args.info, aig, args.tq_rank)
-                    # save_cache(results, cache_path)
-                # print_result(qid, results[qid])
 
             responses = OrderedDict(sorted(responses.items(), key=lambda r: r[0]))
             for qid, res in responses.items():
