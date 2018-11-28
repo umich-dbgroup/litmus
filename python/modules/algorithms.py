@@ -222,51 +222,54 @@ class Base(object):
 class L1S(Base):
     def informative_tuples(self, T):
         start = time.time()
+        print('Finding informative tuples...')
         result = {}
         observed = set()
         for t, S in T.items():
             if frozenset(S) not in observed:
                 result[t] = S
                 observed.add(frozenset(S))
-        return result, time.time() - start
+        inf_time = time.time() - start
+        print('Done finding informative tuples [{}s].'.format(inf_time))
+        return result, inf_time
 
     def find_best_entropy_tuple(self, Q, T, timed_out):
+        print('Finding best entropy tuple...')
         start = time.time()
 
         # calculate entropies for each tuple
         u_plus_checks = {}
         u_minuses = {}
         entropies = {}
+        entropy_set = set()
         for i, item in enumerate(T.items()):
             t, S = item
             if t not in u_plus_checks:
-                u_plus_checks[t] = []
+                u_plus_checks[t] = [(t, S)]
             if t not in u_minuses:
-                u_minuses[t] = 0
+                u_minuses[t] = 1
             for j in range(i+1, len(T)):
                 t2, S2 = T.items()[j]
                 if S == S2:
                     if t2 not in u_plus_checks:
-                        u_plus_checks[t2] = []
+                        u_plus_checks[t2] = [(t2, S2)]
 
                     u_plus_checks[t].append((t2, S2))
                     u_plus_checks[t2].append((t,S))
 
-                    if t not in u_minuses:
-                        u_minuses[t] = 0
                     if t2 not in u_minuses:
                         u_minuses[t2] = 0
                     u_minuses[t] += 1
                     u_minuses[t2] += 1
                 elif S < S2:
-                    u_plus_checks[t].append(t2)
+                    u_plus_checks[t].append((t2, S2))
                     if t2 not in u_minuses:
                         u_minuses[t2] = 0
                     u_minuses[t2] += 1
                 else:
                     if t2 not in u_plus_checks:
-                        u_plus_checks[t2] = []
-                    u_plus_checks[t2].append(t)
+                        u_plus_checks[t2] = [(t2, S2)]
+                    u_plus_checks[t2].append((t, S))
                     u_minuses[t] += 1
 
             u_plus = 0
@@ -274,26 +277,30 @@ class L1S(Base):
                 for t3, S3 in u_plus_checks[t]:
                     if S2 < S3:
                         u_plus += 1
+                        break
 
-            entropies = {}
-            entropies[t] = (min(u_plus, u_minuses[t]), max(u_plus, u_minuses[t]))
+            entropy = (min(u_plus, u_minuses[t]), max(u_plus, u_minuses[t]))
+            entropies[t] = entropy
+            entropy_set.add(entropy)
 
         m = 0
-        skyline = []
-        for t, e in entropies.items():
+        skyline = set()
+        for e in entropy_set:
             is_skyline = True
             if min(e) > m:
                 m = min(e)
-            for t2, e2 in entropies.items():
-                if e[0] <= e2[0] and e[1] <= e2[1]:
+            for e2 in entropy_set:
+                if e != e2 and e[0] <= e2[0] and e[1] <= e2[1]:
                     is_skyline = False
                     break
             if is_skyline:
-                skyline.add((t,e))
+                skyline.add(e)
 
         t_hat = None
         e_hat = None
-        for t, e in skyline:
+        for t, e in entropies.items():
+            if e not in skyline:
+                continue
             if t_hat is None:
                 # have a default response in case timeout messes with things
                 t_hat = t
@@ -310,7 +317,9 @@ class L1S(Base):
                     e_hat = e
                     break
 
-        return t_hat, e_hat, time.time() - start
+        e_time = time.time() - start
+        print('Done finding best entropy tuple [{}s].'.format(e_time))
+        return t_hat, e_hat, e_time
 
     def execute(self, Q):
         tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(Q)
@@ -326,7 +335,7 @@ class L1S(Base):
                 total_incr_time += incr_time
             inf_T, inf_time = self.informative_tuples(tuples)
             comp_time += inf_time
-            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, tuples, timed_out)
+            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, inf_T, timed_out)
             comp_time += e_time
 
             if t_hat:
