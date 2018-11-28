@@ -230,7 +230,7 @@ class L1S(Base):
                 result[t] = S
                 observed.add(frozenset(S))
         inf_time = time.time() - start
-        print('Done finding informative tuples [{}s].'.format(inf_time))
+        print('Done finding {} informative tuples [{}s].'.format(len(result), inf_time))
         return result, inf_time
 
     def find_best_entropy_tuple(self, Q, T, timed_out):
