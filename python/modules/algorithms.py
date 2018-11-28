@@ -241,6 +241,8 @@ class L1S(Base):
             t, S = item
             if t not in u_plus_checks:
                 u_plus_checks[t] = []
+            if t not in u_minuses:
+                u_minuses[t] = 0
             for j in range(i+1, len(T)):
                 t2, S2 = T.items()[j]
                 if S == S2:
@@ -258,8 +260,12 @@ class L1S(Base):
                     u_minuses[t2] += 1
                 elif S < S2:
                     u_plus_checks[t].append(t2)
+                    if t2 not in u_minuses:
+                        u_minuses[t2] = 0
                     u_minuses[t2] += 1
                 else:
+                    if t2 not in u_plus_checks:
+                        u_plus_checks[t2] = []
                     u_plus_checks[t2].append(t)
                     u_minuses[t] += 1
 
