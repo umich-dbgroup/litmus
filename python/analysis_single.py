@@ -24,6 +24,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
     times_per_iter = []
     max_iter_times = []
     tqc_vals = []
+    iter_cq_ratios = []
 
     for qid, r in results.items():
         if min_qid and qid < min_qid:
@@ -45,6 +46,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         qids.append(qid)
         cq_counts.append(r['total_cqs'])
         each_iters.append(r['iters'])
+        iter_cq_ratios.append(r['iters'] / r['total_cqs'])
         tqc_vals.append(tqcs[qid])
 
         query_time = 0
@@ -81,7 +83,8 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
         'comp_times': comp_times,
         'total_times': total_times,
         'times_per_iter': times_per_iter,
-        'max_iter_times': max_iter_times
+        'max_iter_times': max_iter_times,
+        'iter_cq_ratios': iter_cq_ratios
     }
 
     return summary
@@ -104,6 +107,7 @@ def avg_summaries(summaries):
             result['total_times'] = list(map(add,result['total_times'],summary['total_times']))
             result['times_per_iter'] = list(map(add,result['times_per_iter'],summary['times_per_iter']))
             result['max_iter_times'] = list(map(add,result['max_iter_times'],summary['max_iter_times']))
+            result['iter_cq_ratios'] = list(map(add,result['iter_cq_ratios'],summary['iter_cq_ratios']))
 
     result['total'] /= len(summaries)
     result['analyzed'] /= len(summaries)
@@ -116,6 +120,7 @@ def avg_summaries(summaries):
     result['total_times'] = [i / len(summaries) for i in result['total_times']]
     result['times_per_iter'] = [i / len(summaries) for i in result['times_per_iter']]
     result['max_iter_times'] = [i / len(summaries) for i in result['max_iter_times']]
+    result['iter_cq_ratios'] = [i / len(summaries) for i in result['iter_cq_ratios']]
 
     return result
 
@@ -209,6 +214,7 @@ def main():
     table.append_row(['Outlier Iters', '{}'.format(iter_outliers)])
     table.append_row(['Std. Dev. # Iters', '{:.3f}'.format(np.std(stats['iters']))])
     table.append_row(['Mean # Iters', '{:.3f}'.format(np.mean(stats['iters']))])
+    table.append_row(['Mean Iter/CQ Ratio', '{:.3f}'.format(np.mean(stats['iter_cq_ratios']))])
     print(table)
 
     table = BeautifulTable()
