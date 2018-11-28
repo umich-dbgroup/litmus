@@ -478,7 +478,7 @@ class GreedyFirst(GreedyBB):
                 return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
 
 
-class GuessAndVerify(Base):
+class TopW(Base):
     # credit: https://gist.github.com/9thbit/1559670/4ee195bdbec43aff58a65b148b11c2ac7d246c11
     def cmp_w_randomize_ties(self, a, b):
         diff = cmp(a, b)

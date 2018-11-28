@@ -13,7 +13,7 @@ from beautifultable import BeautifulTable
 from multiprocessing import Pool
 
 from modules.aig import AIG
-from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyFirst, GuessAndVerify
+from modules.algorithms import Base, GreedyAll, GreedyBB, GreedyFirst, TopW
 from modules.database import Database
 from modules.excludes import find_excludes
 from modules.logger import Logger
@@ -90,8 +90,8 @@ def run_task(mode, db, parser, qid, task, info, aig, tq_rank):
 
     algorithm = None
 
-    if mode == 'gav':
-        algorithm = GuessAndVerify(db)
+    if mode == 'topw':
+        algorithm = TopW(db)
     elif mode == 'greedyall':
         algorithm = GreedyAll(db)
     elif mode == 'greedybb':
@@ -206,7 +206,7 @@ def save_results(results, out_dir, prefix):
 def main():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('db')
-    argparser.add_argument('mode', choices=['gav', 'greedyall', 'greedybb', 'greedyfirst'])
+    argparser.add_argument('mode', choices=['topw', 'greedyall', 'greedybb', 'greedyfirst'])
     # argparser.add_argument('--constrain', action='store_true')
     argparser.add_argument('--tq_rank', choices=['equal', '1', 'q1', 'half', 'q3', 'n'], default='equal')
     argparser.add_argument('--qid', type=int)
