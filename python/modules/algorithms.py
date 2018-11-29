@@ -242,6 +242,7 @@ class L1S(Base):
                         to_delete.add(t)
                         continue
 
+                    S_key = frozenset(S)
                     result[t] = S
 
                     inf_counts[S_key] = 1
