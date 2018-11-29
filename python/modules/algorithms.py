@@ -363,48 +363,6 @@ class L1S(Base):
         }
         return self.return_tuple(Q, t_hat, t_hat_cqids, result_meta)
 
-class L2S(L1S):
-    def find_entropies(self, T, inf_counts):
-        print('Finding entropies...')
-        start = time.time()
-
-        is_subset = np.eye(len(T))
-        T_items = T.items()
-        for i, item in enumerate(T_items):
-            t, S = item
-            S_key = frozenset(S)
-            # is_subset[i,i] = 1
-            for j in range(i+1, len(T)):
-                t2, S2 = T_items[j]
-                S2_key = frozenset(S2)
-
-                if len(S) == len(S2):
-                    if S == S2:
-                        is_subset[i,j] = inf_counts[S2_key]
-                        is_subset[j,i] = inf_counts[S_key]
-                elif len(S) > len(S2):
-                    if S2 < S:
-                        is_subset[j,i] = inf_counts[S_key]
-                else:
-                    if S < S2:
-                        is_subset[i,j] = inf_counts[S2_key]
-
-        entropies = {}
-        entropy_set = set()
-
-        u_plus_vals = np.sum(is_subset, axis=1)
-        u_minus_vals = np.sum(is_subset, axis=0)
-        for i, t in enumerate(T.iterkeys()):
-            u_plus = u_plus_vals[i]
-            u_minus = u_minus_vals[i]
-
-            entropy = (min(u_plus, u_minus), max(u_plus, u_minus))
-            entropies[t] = entropy
-            entropy_set.add(entropy)
-
-        print('Done finding entropies [{}s].'.format(time.time() - start))
-        return entropies, entropy_set
-
 class GreedyAll(Base):
     def execute(self, Q):
         tuples, valid_cqs, timed_out, sql_errors, query_time = self.run_cqs(Q)
