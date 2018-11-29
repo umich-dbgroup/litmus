@@ -222,19 +222,33 @@ class Base(object):
         print('Valid CQs ({}): {}'.format(len(valid_cqs), valid_cqs))
 
 class L1S(Base):
-    def informative_tuples(self, Q, T):
+    def informative_tuples(self, Q, T, timed_out):
         start = time.time()
         print('Finding informative tuples...')
         result = {}
         inf_counts = {}
+        to_delete = set()
         for t, S in T.iteritems():
             S_key = frozenset(S)
             if len(Q) != len(S_key):
                 if S_key not in inf_counts:
+                    # check if t exists in any queries timed out
+                    for cqid in timed_out:
+                        if Query.tuple_in_query(self.db, t, Q[cqid]):
+                            T[t].add(cqid)
+
+                    # if it belongs to all, continue
+                    if T[t] == set(Q.iterkeys()):
+                        to_delete.add(t)
+                        continue
+
                     result[t] = S
+
                     inf_counts[S_key] = 1
                 else:
                     inf_counts[S_key] += 1
+        for t in to_delete:
+            del T[t]
 
         inf_time = time.time() - start
         print('Done finding {} informative tuples [{}s].'.format(len(result), inf_time))
@@ -281,7 +295,7 @@ class L1S(Base):
         print('Done finding entropies [{}s].'.format(time.time() - start))
         return entropies, entropy_set
 
-    def find_best_entropy_tuple(self, Q, tuples, T, inf_counts, timed_out):
+    def find_best_entropy_tuple(self, Q, tuples, T, inf_counts):
         print('Finding best entropy tuple...')
         start = time.time()
 
@@ -309,17 +323,6 @@ class L1S(Base):
         for t, e in entropies.iteritems():
             condition = (e in skyline and min(e) == m)
             if t_hat is None or condition:
-                # check if t exists in any queries timed out
-                for cqid in timed_out:
-                    if Query.tuple_in_query(self.db, t, Q[cqid]):
-                        T[t].add(cqid)
-
-                # if it belongs to all, continue
-                if T[t] == set(Q.iterkeys()):
-                    del tuples[t]
-                    del T[t]
-                    continue
-
                 t_hat = t
                 e_hat = e
 
@@ -341,9 +344,9 @@ class L1S(Base):
             if not tuples and timed_out:
                 tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
                 total_incr_time += incr_time
-            inf_T, inf_counts, inf_time = self.informative_tuples(Q, tuples)
+            inf_T, inf_counts, inf_time = self.informative_tuples(Q, tuples, timed_out)
             comp_time += inf_time
-            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, tuples, inf_T, inf_counts, timed_out)
+            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, tuples, inf_T, inf_counts)
             comp_time += e_time
 
             if t_hat:
