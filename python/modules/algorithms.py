@@ -377,7 +377,7 @@ class GreedyAll(Base):
             comp_time += min_objective_time
 
             if objectives:
-                t_hat, min_objective = objectives.items()[0]
+                t_hat, min_objective = objectives.iteritems().next()
                 t_hat_cqids = tuples[t_hat]
 
         self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
@@ -535,10 +535,11 @@ class GreedyBB(GreedyAll):
         t_hat = None
         t_hat_cqids = None
         if T_hat:
-            for t, S in T_hat.items()[0:TOP_TUPLES]:
+            T_hat_items = T_hat.items()
+            for t, S in T_hat_items[0:TOP_TUPLES]:
                 self.print_tuple(t, self.objective(Q,S), S)
 
-            t_hat, t_hat_cqids = T_hat.items()[0]
+            t_hat, t_hat_cqids = T_hat_items[0]
             min_objective = self.objective(Q, t_hat_cqids)
 
         comp_time = qig_time + clique_time + total_objective_time + total_branch_time
@@ -602,7 +603,7 @@ class GreedyFirst(GreedyBB):
                 objectives, calc_objective_time = self.calc_objectives(Q, T)
                 objectives, min_objective_time = self.min_objective_tuples(Q, T, objectives, timed_out)
 
-                t_hat, min_objective = objectives.items()[0]
+                t_hat, min_objective = objectives.iteritems().next()
                 t_hat_cqids = tuples[t_hat]
 
                 self.print_tuple(t_hat, min_objective, t_hat_cqids)
@@ -631,7 +632,7 @@ class TopW(Base):
         cached = []
 
         print("Executing CQs in weighted order and select 1 random tuple...")
-        sorted_cqs = OrderedDict(sorted(Q.items(), key=lambda x: -x[1].w, cmp=self.cmp_w_randomize_ties))
+        sorted_cqs = OrderedDict(sorted(Q.iteritems(), key=lambda x: -x[1].w, cmp=self.cmp_w_randomize_ties))
 
         timeout_cost = None
         tuples = {}
@@ -701,7 +702,7 @@ class TopW(Base):
             objectives, calc_objective_time = self.calc_objectives(Q, tuples)
             objectives, min_objective_time = self.min_objective_tuples(Q, tuples, objectives, [])
             self.print_best_tuples(Q, objectives, tuples, TOP_TUPLES)
-            t_hat, min_objective = objectives.items()[0]
+            t_hat, min_objective = objectives.iteritems().next()
             t_hat_cqids = tuples[t_hat]
 
         result_meta = {
