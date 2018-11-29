@@ -230,15 +230,15 @@ class L1S(Base):
         to_delete = set()
         for t, S in T.iteritems():
             S_key = frozenset(S)
-            if len(Q) != len(S_key):
+            if len(Q) != len(S):
                 if S_key not in inf_counts:
                     # check if t exists in any queries timed out
                     for cqid in timed_out:
                         if Query.tuple_in_query(self.db, t, Q[cqid]):
-                            T[t].add(cqid)
+                            S.add(cqid)
 
                     # if it belongs to all, continue
-                    if T[t] == set(Q.iterkeys()):
+                    if len(S) == len(Q):
                         to_delete.add(t)
                         continue
 
