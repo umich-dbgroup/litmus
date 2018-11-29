@@ -8,6 +8,8 @@ from collections import OrderedDict
 from itertools import combinations
 from Queue import PriorityQueue
 
+import numpy as np
+
 from query import Query
 from qig import QIGByType, QIGByRange
 
@@ -220,68 +222,67 @@ class Base(object):
         print('Valid CQs ({}): {}'.format(len(valid_cqs), valid_cqs))
 
 class L1S(Base):
-    def informative_tuples(self, T):
+    def informative_tuples(self, Q, T):
         start = time.time()
         print('Finding informative tuples...')
         result = {}
-        observed = set()
+        inf_counts = {}
         for t, S in T.items():
-            if frozenset(S) not in observed:
-                result[t] = S
-                observed.add(frozenset(S))
+            S_key = frozenset(S)
+            if len(Q) != len(S_key):
+                if S_key not in inf_counts:
+                    result[t] = S
+                    inf_counts[S_key] = 1
+                else:
+                    inf_counts[S_key] += 1
+
         inf_time = time.time() - start
         print('Done finding {} informative tuples [{}s].'.format(len(result), inf_time))
-        return result, inf_time
+        return result, inf_counts, inf_time
 
-    def find_best_entropy_tuple(self, Q, T, timed_out):
+    def find_entropies(self, T, inf_counts):
+        print('Finding entropies...')
+        start = time.time()
+
+        is_subset = np.zeros((len(T), len(T)))
+        for i, item in enumerate(T.items()):
+            t, S = item
+            S_key = frozenset(S)
+            is_subset[i,i] = 1
+            for j in range(i+1, len(T)):
+                t2, S2 = T.items()[j]
+                S2_key = frozenset(S2)
+                if S == S2:
+                    is_subset[i,j] = inf_counts[S2_key]
+                    is_subset[j,i] = inf_counts[S_key]
+                elif S < S2:
+                    is_subset[i,j] = inf_counts[S2_key]
+                elif S2 < S:
+                    is_subset[j,i] = inf_counts[S_key]
+
+        entropies = {}
+        entropy_set = set()
+
+        for i, t in enumerate(T.keys()):
+            u_plus = np.sum(is_subset[i,:])
+            u_minus = np.sum(is_subset[:,i])
+
+            entropy = (min(u_plus, u_minus), max(u_plus, u_minus))
+            entropies[t] = entropy
+            entropy_set.add(entropy)
+
+        print('Done finding entropies [{}s].'.format(time.time() - start))
+        return entropies, entropy_set
+
+    def find_best_entropy_tuple(self, Q, T, inf_counts, timed_out):
         print('Finding best entropy tuple...')
         start = time.time()
 
         # calculate entropies for each tuple
-        u_plus_checks = {}
-        u_minuses = {}
-        entropies = {}
-        entropy_set = set()
-        for i, item in enumerate(T.items()):
-            t, S = item
-            if t not in u_plus_checks:
-                u_plus_checks[t] = [(t, S)]
-            if t not in u_minuses:
-                u_minuses[t] = 1
-            for j in range(i+1, len(T)):
-                t2, S2 = T.items()[j]
-                if S == S2:
-                    if t2 not in u_plus_checks:
-                        u_plus_checks[t2] = [(t2, S2)]
+        entropies, entropy_set = self.find_entropies(T, inf_counts)
 
-                    u_plus_checks[t].append((t2, S2))
-                    u_plus_checks[t2].append((t,S))
-
-                    if t2 not in u_minuses:
-                        u_minuses[t2] = 0
-                    u_minuses[t] += 1
-                    u_minuses[t2] += 1
-                elif S < S2:
-                    u_plus_checks[t].append((t2, S2))
-                    if t2 not in u_minuses:
-                        u_minuses[t2] = 0
-                    u_minuses[t2] += 1
-                else:
-                    if t2 not in u_plus_checks:
-                        u_plus_checks[t2] = [(t2, S2)]
-                    u_plus_checks[t2].append((t, S))
-                    u_minuses[t] += 1
-
-            u_plus = 0
-            for t2, S2 in u_plus_checks[t]:
-                for t3, S3 in u_plus_checks[t]:
-                    if S2 < S3:
-                        u_plus += 1
-                        break
-
-            entropy = (min(u_plus, u_minuses[t]), max(u_plus, u_minuses[t]))
-            entropies[t] = entropy
-            entropy_set.add(entropy)
+        # 94s on iteration 1 for mondial Q5. TODO: beat it
+        # entropies, entropy_set = self.find_entropies_slow(T)
 
         m = 0
         skyline = set()
@@ -333,9 +334,9 @@ class L1S(Base):
             if not tuples and timed_out:
                 tuples, incr_time = self.incremental_exec(Q, tuples, timed_out)
                 total_incr_time += incr_time
-            inf_T, inf_time = self.informative_tuples(tuples)
+            inf_T, inf_counts, inf_time = self.informative_tuples(Q, tuples)
             comp_time += inf_time
-            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, inf_T, timed_out)
+            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, inf_T, inf_counts, timed_out)
             comp_time += e_time
 
             if t_hat:
