@@ -35,7 +35,7 @@ class Base(object):
     def sort_by_cost(self, cqs):
         # perform ROUGH cost estimation
         by_cost = []
-        for cqid, cq in cqs.items():
+        for cqid, cq in cqs.iteritems():
             by_cost.append((cqid, cq.get_cost(self.db)))
 
         by_cost.sort(key=lambda x: x[1])
@@ -90,7 +90,7 @@ class Base(object):
         start = time.time()
 
         # sort timed out cqs by descending weight
-        by_weight = sorted(filter(lambda x: x[0] in timed_out, Q.items()), key=lambda x: -x[1].w)
+        by_weight = sorted(filter(lambda x: x[0] in timed_out, Q.iteritems()), key=lambda x: -x[1].w)
 
         # incremental execution of each CQ
         while True:
@@ -137,7 +137,7 @@ class Base(object):
     def objective(self, Q, S):
         S_w = 0
         diff_w = 0
-        for cqid, cq in Q.items():
+        for cqid, cq in Q.iteritems():
             if cqid in S:
                 S_w += cq.w
             else:
@@ -150,7 +150,7 @@ class Base(object):
 
         objectives = {}
         memo = {}
-        for t, S in T.items():
+        for t, S in T.iteritems():
             S_key = frozenset(S)
             if S_key in memo:
                 objectives[t] = memo[S_key]
@@ -167,9 +167,9 @@ class Base(object):
         print('Finding min objective tuples, including timed out queries...')
         start = time.time()
 
-        objectives = OrderedDict(sorted(objectives.items(), key=lambda t: t[1]))
+        objectives = OrderedDict(sorted(objectives.iteritems(), key=lambda t: t[1]))
         to_delete = []
-        for t, objective in objectives.items():
+        for t, objective in objectives.iteritems():
             S = T[t]
 
             # check if t exists in any queries not yet executed/timed out
@@ -196,7 +196,7 @@ class Base(object):
 
     def return_tuple(self, Q, t, cqids, result_meta):
         # remove t from all CQ caches in Q before returning
-        for cqid, cq in Q.items():
+        for cqid, cq in Q.iteritems():
             if cq.tuples:
                 cq.tuples.discard(t)
 
@@ -227,7 +227,7 @@ class L1S(Base):
         print('Finding informative tuples...')
         result = {}
         inf_counts = {}
-        for t, S in T.items():
+        for t, S in T.iteritems():
             S_key = frozenset(S)
             if len(Q) != len(S_key):
                 if S_key not in inf_counts:
@@ -244,21 +244,26 @@ class L1S(Base):
         print('Finding entropies...')
         start = time.time()
 
-        is_subset = np.zeros((len(T), len(T)))
-        for i, item in enumerate(T.items()):
+        is_subset = np.eye(len(T))
+        T_items = T.items()
+        for i, item in enumerate(T_items):
             t, S = item
             S_key = frozenset(S)
-            is_subset[i,i] = 1
+            # is_subset[i,i] = 1
             for j in range(i+1, len(T)):
-                t2, S2 = T.items()[j]
+                t2, S2 = T_items[j]
                 S2_key = frozenset(S2)
-                if S == S2:
-                    is_subset[i,j] = inf_counts[S2_key]
-                    is_subset[j,i] = inf_counts[S_key]
-                elif S < S2:
-                    is_subset[i,j] = inf_counts[S2_key]
-                elif S2 < S:
-                    is_subset[j,i] = inf_counts[S_key]
+
+                if len(S) == len(S2):
+                    if S == S2:
+                        is_subset[i,j] = inf_counts[S2_key]
+                        is_subset[j,i] = inf_counts[S_key]
+                elif len(S) > len(S2):
+                    if S2 < S:
+                        is_subset[j,i] = inf_counts[S_key]
+                else:
+                    if S < S2:
+                        is_subset[i,j] = inf_counts[S2_key]
 
         entropies = {}
         entropy_set = set()
@@ -299,7 +304,7 @@ class L1S(Base):
 
         t_hat = None
         e_hat = None
-        for t, e in entropies.items():
+        for t, e in entropies.iteritems():
             if e not in skyline:
                 continue
             if t_hat is None:
@@ -401,7 +406,7 @@ class GreedyBB(GreedyAll):
     def bound(self, Q, S, M):
         S_w = 0
         diff_w = 0
-        for cqid, cq in Q.items():
+        for cqid, cq in Q.iteritems():
             if cqid in S:
                 S_w += cq.w
             else:
@@ -430,7 +435,7 @@ class GreedyBB(GreedyAll):
         all_cqs = {}
         less_cqs = {}
 
-        for tuple, cqids in tuples.items():
+        for tuple, cqids in tuples.iteritems():
             if cqids == S:
                 all_cqs[tuple] = cqids
             if cqids < S:
@@ -550,7 +555,7 @@ class GreedyBB(GreedyAll):
 class GreedyFirst(GreedyBB):
     def tuples_not_in_future_cliques(self, C, tuples, i):
         results = {}
-        for t, cqids in tuples.items():
+        for t, cqids in tuples.iteritems():
             exclude = False
             for j in range(i + 1, len(C)):
                 if cqids <= C[j][1]:
@@ -633,7 +638,7 @@ class TopW(Base):
 
         total_query_time = 0
         start = time.time()
-        for cqid, cq in sorted_cqs.items():
+        for cqid, cq in sorted_cqs.iteritems():
             try:
                 if timeout_cost and cq.get_cost(self.db) >= timeout_cost:
                     cq.timed_out = True
