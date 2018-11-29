@@ -114,7 +114,7 @@ class Base(object):
                     if Query.tuple_in_query(self.db, t, Q[other_cqid]):
                         tuples[t].add(other_cqid)
 
-                if tuples[t] != set(Q.keys()):
+                if tuples[t] != set(Q.iterkeys()):
                     print('Found incremental tuple.')
                     found = True
                     break
@@ -180,7 +180,7 @@ class Base(object):
             # recalculate objective for this
             objectives[t] = self.objective(Q, S)
 
-            if S == set(Q.keys()):
+            if S == set(Q.iterkeys()):
                 to_delete.append(t)
             else:
                 # only execute up to the first
@@ -268,9 +268,11 @@ class L1S(Base):
         entropies = {}
         entropy_set = set()
 
-        for i, t in enumerate(T.keys()):
-            u_plus = np.sum(is_subset[i,:])
-            u_minus = np.sum(is_subset[:,i])
+        u_plus_vals = np.sum(is_subset, axis=1)
+        u_minus_vals = np.sum(is_subset, axis=0)
+        for i, t in enumerate(T.iterkeys()):
+            u_plus = u_plus_vals[i]
+            u_minus = u_minus_vals[i]
 
             entropy = (min(u_plus, u_minus), max(u_plus, u_minus))
             entropies[t] = entropy
@@ -279,7 +281,7 @@ class L1S(Base):
         print('Done finding entropies [{}s].'.format(time.time() - start))
         return entropies, entropy_set
 
-    def find_best_entropy_tuple(self, Q, T, inf_counts, timed_out):
+    def find_best_entropy_tuple(self, Q, tuples, T, inf_counts, timed_out):
         print('Finding best entropy tuple...')
         start = time.time()
 
@@ -305,24 +307,24 @@ class L1S(Base):
         t_hat = None
         e_hat = None
         for t, e in entropies.iteritems():
-            if e not in skyline:
-                continue
-            if t_hat is None:
-                # have a default response in case timeout messes with things
-                t_hat = t
-                e_hat = e
-            if min(e) == m:
+            condition = (e in skyline and min(e) == m)
+            if t_hat is None or condition:
                 # check if t exists in any queries timed out
                 for cqid in timed_out:
                     if Query.tuple_in_query(self.db, t, Q[cqid]):
                         T[t].add(cqid)
 
-                # if it belongs to all, continue
-                if T[t] != set(Q.keys()):
+                    # if it belongs to all, continue
+                    if T[t] == set(Q.iterkeys()):
+                        del tuples[t]
+                        del T[t]
+                        continue
+
                     t_hat = t
                     e_hat = e
-                    break
 
+                    if condition:
+                        break
         e_time = time.time() - start
         print('Done finding best entropy tuple [{}s].'.format(e_time))
         return t_hat, e_hat, e_time
@@ -341,7 +343,7 @@ class L1S(Base):
                 total_incr_time += incr_time
             inf_T, inf_counts, inf_time = self.informative_tuples(Q, tuples)
             comp_time += inf_time
-            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, inf_T, inf_counts, timed_out)
+            t_hat, e_hat, e_time = self.find_best_entropy_tuple(Q, tuples, inf_T, inf_counts, timed_out)
             comp_time += e_time
 
             if t_hat:
@@ -463,7 +465,7 @@ class GreedyBB(GreedyAll):
         if hasattr(self, 'cliques'):
             new_cliques = []
             for C_i in self.cliques:
-                new_C_i = C_i & set(Q.keys())
+                new_C_i = C_i & set(Q.iterkeys())
                 if new_C_i:
                     new_cliques.append(new_C_i)
             self.cliques = new_cliques
@@ -669,14 +671,14 @@ class TopW(Base):
                         tuples = { t: set([ int(cqid) ]) }
 
                         # need to check not-yet-executed queries and any timed-out queries
-                        check_queries = list(set(Q.keys()) - set(exec_cqs))
+                        check_queries = list(set(Q.iterkeys()) - set(exec_cqs))
                         check_queries.extend(timed_out)
 
                         for other_cqid in check_queries:
                             if Query.tuple_in_query(self.db, t, Q[other_cqid]):
                                 tuples[t].add(other_cqid)
 
-                        if tuples[t] != set(Q.keys()):
+                        if tuples[t] != set(Q.iterkeys()):
                             found = True
                             break
                         else:
