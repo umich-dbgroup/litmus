@@ -24,9 +24,9 @@ Then make sure the variables set in `config.ini` are what you want (in particula
 
 Download the following datasets and load into MySQL:
 
-*IMDB*: https://s3.amazonaws.com/umdb-users/cjbaik/IMDB.sql 
-*Yelp*: https://s3.amazonaws.com/umdb-users/cjbaik/YELP.sql
-*Mondial*: in `/data` folder: `mondial-schema-mysql.sql`; `mondial-inputs-mysql.sql`
+- *IMDB*: https://s3.amazonaws.com/umdb-users/cjbaik/IMDB.sql 
+- *Yelp*: https://s3.amazonaws.com/umdb-users/cjbaik/YELP.sql
+- *Mondial*: in `/data` folder: `mondial-schema-mysql.sql`; `mondial-inputs-mysql.sql`
 
 ## Load Datasets
 
