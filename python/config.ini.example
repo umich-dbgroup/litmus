@@ -21,3 +21,9 @@ dir = aig
 
 [tqc]
 dir = tqc
+
+[mailer]
+user = user@example.com
+password = mypassword
+host = smtp.example.com
+port = 587

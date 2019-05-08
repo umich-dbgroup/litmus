@@ -2,14 +2,18 @@ __all__ = ['Mailer']
 
 from email.mime.text import MIMEText
 
+import ConfigParser
 import smtplib
 
 class Mailer(object):
-    def __init__(self, login = 'cannoliemailer@gmail.com', password = 'cannoli123', host = 'smtp.gmail.com', port = 587):
-        self.login = login
-        self.password = password
-        self.host = host
-        self.port = port
+    def __init__(self):
+        config = ConfigParser.RawConfigParser(allow_no_value=True)
+        config.read('../config.ini')
+
+        self.login = config.get('mailer', 'user')
+        self.password = config.get('mailer', 'password')
+        self.host = config.get('mailer', 'host')
+        self.port = config.get('mailer', 'port')
 
     def send(self, to_email, subject = 'Done', message = 'Execution finished.'):
         msg = MIMEText(message)
