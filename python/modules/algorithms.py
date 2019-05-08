@@ -6,12 +6,12 @@ import traceback
 
 from collections import OrderedDict
 from itertools import combinations
-from Queue import PriorityQueue
+from queue import PriorityQueue
 
 import numpy as np
 
-from query import Query
-from qig import QIGByType, QIGByRange
+from .query import Query
+from .qig import QIGByType, QIGByRange
 
 TOP_TUPLES = 5
 BOUND_LIMIT = 15

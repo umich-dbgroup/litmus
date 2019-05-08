@@ -1,5 +1,5 @@
-from database import AttributeIntersect, AllAttributeIntersect
-from partitions import PartSet, SinglePart
+from .database import AttributeIntersect, AllAttributeIntersect
+from .partitions import PartSet, SinglePart
 
 # Query Intersection Graph
 class QIG(object):

@@ -1,6 +1,6 @@
 import re
 
-from database import AttributeIntersect
+from .database import AttributeIntersect
 from numbers import Number
 
 class Query(object):
