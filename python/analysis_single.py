@@ -2,7 +2,7 @@ from __future__ import division
 
 import argparse
 from collections import OrderedDict
-import ConfigParser
+import configparser
 import numpy as np
 from operator import add
 import os
@@ -124,8 +124,8 @@ def avg_summaries(summaries):
 
     return result
 
-def get_stats(db_name, mode, tq_rank, qid_min=None, qid_max=None, tqc_min=None, tqc_max=None, user_time):
-    config = ConfigParser.RawConfigParser(allow_no_value=True)
+def get_stats(db_name, mode, tq_rank, qid_min=None, qid_max=None, tqc_min=None, tqc_max=None):
+    config = configparser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
     tqcs = load_tqc_cache(config, db_name)

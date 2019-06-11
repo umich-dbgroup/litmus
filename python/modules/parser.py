@@ -9,7 +9,7 @@ import traceback
 from moz_sql_parser import parse
 # from tqdm import tqdm
 
-from query import Query
+from .query import Query
 
 class SQLParser(object):
     def __init__(self, db_name, cache_dir):

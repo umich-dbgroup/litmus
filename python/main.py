@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import argparse
-import ConfigParser
+from configparser import ConfigParser
 from collections import OrderedDict
 import json
 import os
