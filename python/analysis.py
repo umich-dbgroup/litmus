@@ -33,12 +33,12 @@ def main():
 
         if stats:
             iters.append((i, np.mean(stats['iters'])))
-            total_times.append((i, np.mean(stats['total_times'])))
+            total_times.append((i, np.median(stats['total_times'])))
             times_per_iter.append((i, np.mean(stats['times_per_iter'])))
 
     print('Format for LaTeX in paper:')
     print(get_latex_format('Iters', iters))
-    print(get_latex_format('Total Times', total_times))
+    print(get_latex_format('Median Total Times', total_times))
     print(get_latex_format('Times Per Iter', times_per_iter))
 
 

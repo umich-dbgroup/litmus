@@ -6,7 +6,7 @@ import traceback
 
 from collections import OrderedDict
 from itertools import combinations
-from queue import PriorityQueue
+from Queue import PriorityQueue
 
 import numpy as np
 

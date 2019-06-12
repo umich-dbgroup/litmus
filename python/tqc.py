@@ -1,7 +1,7 @@
 from __future__ import division, print_function
 
 import argparse
-from configparser import ConfigParser
+import ConfigParser
 import os
 import pickle
 import re

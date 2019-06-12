@@ -180,8 +180,8 @@ class Database(object):
         loaded_from_cache = self.load_relations()
         if timeout is not None:
             self.set_timeout(timeout)
-        if buffer_pool_size is not None:
-            self.set_buffer_pool_size(buffer_pool_size)
+        # if buffer_pool_size is not None:
+            # self.set_buffer_pool_size(buffer_pool_size)
         self.set_packet_size()
         print("Loaded from cache: {}".format(loaded_from_cache))
         print("Done loading database [{}s]".format(time.time()-start))
