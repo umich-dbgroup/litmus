@@ -2,7 +2,7 @@ from __future__ import division
 
 import argparse
 from collections import OrderedDict
-import configparser
+import ConfigParser
 import numpy as np
 from operator import add
 import os
@@ -12,7 +12,7 @@ from tqc import load_tqc_cache
 
 from beautifultable import BeautifulTable
 
-def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
+def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max, user_time):
     analyzed_count = 0
     qids = []
     cq_counts = []
@@ -58,7 +58,7 @@ def accumulate_results(results, min_qid, max_qid, tqcs, tqc_min, tqc_max):
             exec_cq_count += meta['exec_cq']
             query_time += meta['query_time']
             comp_time += meta['comp_time']
-            iter_time = meta['query_time'] + meta['comp_time']
+            iter_time = meta['query_time'] + meta['comp_time'] + user_time
             total_time += iter_time
 
             if iter_time > max_iter_time:
@@ -124,8 +124,8 @@ def avg_summaries(summaries):
 
     return result
 
-def get_stats(db_name, mode, tq_rank, qid_min=None, qid_max=None, tqc_min=None, tqc_max=None):
-    config = configparser.RawConfigParser(allow_no_value=True)
+def get_stats(db_name, mode, tq_rank, qid_min=None, qid_max=None, tqc_min=None, tqc_max=None, user_time=1):
+    config = ConfigParser.RawConfigParser(allow_no_value=True)
     config.read('config.ini')
 
     tqcs = load_tqc_cache(config, db_name)
@@ -137,7 +137,7 @@ def get_stats(db_name, mode, tq_rank, qid_min=None, qid_max=None, tqc_min=None, 
         if filename.startswith('{}_{}_tq{}'.format(db_name, mode, tq_rank)) and filename.endswith('.pkl'):
             result_path = os.path.join(dir, filename)
             results = pickle.load(open(result_path, 'rb'))
-            summaries.append(accumulate_results(results, qid_min, qid_max, tqcs, tqc_min, tqc_max))
+            summaries.append(accumulate_results(results, qid_min, qid_max, tqcs, tqc_min, tqc_max, user_time))
     if summaries:
         return avg_summaries(summaries)
     else:
@@ -152,9 +152,10 @@ def main():
     parser.add_argument('--qid_max', type=int)
     parser.add_argument('--tqc_min', type=float)
     parser.add_argument('--tqc_max', type=float)
+    parser.add_argument('--user_time', type=float, default=1)
     args = parser.parse_args()
 
-    stats = get_stats(args.db, args.mode, args.tq_rank, qid_min=args.qid_min, qid_max=args.qid_max, tqc_min=args.tqc_min, tqc_max=args.tqc_max)
+    stats = get_stats(args.db, args.mode, args.tq_rank, qid_min=args.qid_min, qid_max=args.qid_max, tqc_min=args.tqc_min, tqc_max=args.tqc_max, user_time=args.user_time)
 
     # iters_0 = sum(i == 0 for i in stats['iters'])
     iters_1 = sum(i <= 1 for i in stats['iters'])
@@ -222,9 +223,10 @@ def main():
     table.column_alignments['TIME INFO'] = BeautifulTable.ALIGN_LEFT
     table.column_alignments['VALUE'] = BeautifulTable.ALIGN_RIGHT
     table.row_separator_char = ''
-    table.append_row(['Mean Executed CQ #', '{:.3f}s'.format(np.mean(stats['exec_cq_counts']))])
+    table.append_row(['Mean Executed CQ #', '{:.3f}'.format(np.mean(stats['exec_cq_counts']))])
     table.append_row(['Mean Query Time', '{:.3f}s'.format(np.mean(stats['query_times']))])
     table.append_row(['Mean Computation Time', '{:.3f}s'.format(np.mean(stats['comp_times']))])
+    table.append_row(['Median Total Time', '{:.3f}s'.format(np.median(stats['total_times']))])
     table.append_row(['Mean Total Time', '{:.3f}s'.format(np.mean(stats['total_times']))])
     table.append_row(['Max Total Time', '{:.3f}s'.format(np.max(stats['total_times']))])
     table.append_row(['Mean Total Time/Iter', '{:.3f}s'.format(np.mean(stats['times_per_iter']))])

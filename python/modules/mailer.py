@@ -2,7 +2,7 @@ __all__ = ['Mailer']
 
 from email.mime.text import MIMEText
 
-from configparser import ConfigParser
+import ConfigParser
 import smtplib
 
 class Mailer(object):
